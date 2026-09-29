@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>HEALTHIA: Trash Blasters</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;background:#06150f;color:#fff;font-family:Arial,sans-serif;overflow-x:hidden}
+body{display:flex;justify-content:center;padding:10px}
+#wrap{width:min(100%,720px)}
+#hud{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:7px}
+.card{background:#0d281e;border:2px solid #2c8f69;border-radius:12px;padding:7px;text-align:center;font-weight:800;font-size:13px}
+#powerCard.ready{border-color:#ffe15c;box-shadow:0 0 14px #ffe15c}
+#powerBar{height:8px;background:#17372b;border-radius:9px;overflow:hidden;margin-top:4px}
+#powerFill{height:100%;width:0;background:#ffe15c}
+#stage{position:relative;width:100%;aspect-ratio:3/4;max-height:78vh;background:linear-gradient(#061a25,#09271d 65%,#12301f);border:3px solid #338f6c;border-radius:16px;overflow:hidden;touch-action:none}
+canvas{width:100%;height:100%;display:block}
+#overlay{position:absolute;inset:0;background:rgba(2,10,8,.88);display:flex;align-items:center;justify-content:center;padding:20px;z-index:3}
+.panel{text-align:center;max-width:520px}.panel h1{margin:0 0 8px;color:#7cf0bd;font-size:clamp(26px,7vw,46px)}
+.panel p{line-height:1.4;color:#d5eee4}.heroes{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:15px 0}
+.heroBtn{width:130px;min-height:115px;border:2px solid #338f6c;border-radius:14px;background:#0d281e;color:#fff;font-weight:800;padding:8px;cursor:pointer}
+.heroBtn.sel{border-color:#ffe15c;transform:translateY(-2px)}.mini{font-size:34px;display:block;margin-bottom:5px}
+button{font:inherit}.start{background:#63d8a4;border:0;border-radius:12px;padding:13px 26px;font-weight:900;color:#052015;cursor:pointer}
+#controls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px}
+.ctrl{min-height:58px;border:2px solid #338f6c;background:#0d281e;color:#fff;border-radius:13px;font-size:22px;font-weight:900;touch-action:none}
+#powerBtn{background:#5d4b14;border-color:#ffe15c;color:#fff0a0}
+#powerBtn.ready{background:#ffe15c;color:#241d00;box-shadow:0 0 14px #ffe15c}
+#help{text-align:center;color:#a8c8bc;font-size:12px;margin-top:7px}
+
+.shop{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}
+.shopItem{background:#0d281e;border:2px solid #338f6c;border-radius:14px;padding:12px 8px;color:white}
+.shopItem h3{margin:3px 0;color:#7cf0bd;font-size:16px}.shopItem p{font-size:12px;min-height:48px;color:#cde5dc}
+.buy{width:100%;min-height:44px;border:0;border-radius:10px;background:#ffe15c;color:#231d00;font-weight:900;cursor:pointer}
+.buy:disabled{opacity:.4;cursor:not-allowed}
+@media(max-width:520px){.shop{grid-template-columns:1fr}.shopItem p{min-height:0}}
+
+#gameMenu{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:7px}
+.menuBtn{flex:1;min-width:120px;min-height:42px;border:2px solid #338f6c;border-radius:10px;background:#0d281e;color:#fff;font-weight:900;cursor:pointer}
+#leaderBox{margin-top:8px;background:#0d281e;border:2px solid #338f6c;border-radius:12px;padding:10px}
+#leaderBox h3{margin:0 0 7px;color:#7cf0bd}
+#leaderList{margin:0;padding-left:24px;text-align:left}
+.scoreForm{display:flex;gap:6px;margin-top:10px}
+.scoreForm input{flex:1;min-width:0;padding:10px;border-radius:9px;border:2px solid #338f6c;background:#071b14;color:#fff;font-size:16px}
+.scoreForm button{padding:10px;border:0;border-radius:9px;background:#ffe15c;font-weight:900}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const HEALTHIA_SUPABASE_URL='https://adakwbhxiuatjvphutgo.supabase.co';
+const HEALTHIA_SUPABASE_KEY='sb_publishable_-9XXEFzLZ-BEdmDUFSpzCQ_-m8W0Wfh';
+let healthiaDB=null;
+try{ healthiaDB=window.supabase.createClient(HEALTHIA_SUPABASE_URL,HEALTHIA_SUPABASE_KEY); }catch(e){console.warn('Supabase unavailable',e)}
+
+async function submitGlobalScore(name,score,wave,hero){
+  if(!healthiaDB) return {ok:false,error:'Leaderboard connection unavailable'};
+  name=(name||'PLAYER').trim().slice(0,18)||'PLAYER';
+  const {error}=await healthiaDB.from('trash_blaster_scores').insert({
+    player_name:name, score:Math.max(0,Math.floor(score||0)),
+    wave:Math.max(1,Math.floor(wave||1)), hero:String(hero||'summy')
+  });
+  return error?{ok:false,error:error.message}:{ok:true};
+}
+async function loadGlobalScores(){
+  if(!healthiaDB) return [];
+  const {data,error}=await healthiaDB.from('trash_blaster_scores')
+    .select('player_name,score,wave,hero,created_at')
+    .order('score',{ascending:false}).order('wave',{ascending:false}).limit(10);
+  if(error) throw error;
+  return data||[];
+}
+window.HEALTHIA_LEADERBOARD={submitGlobalScore,loadGlobalScores};
+</script>
+
+<style>
+@media (max-width:700px){
+  #globalLeaderboardButton{left:8px!important;bottom:8px!important;font-size:10px!important;padding:7px 9px!important;max-width:150px!important}
+  #postGlobalScoreButton{left:8px!important;bottom:46px!important;font-size:10px!important;padding:7px 9px!important;max-width:150px!important}
+  #globalLeaderboard h2{font-size:20px!important}
+  #globalBoardRows{overflow-x:auto}
+}
+</style>
+</head>
+<body>
+<button id="globalLeaderboardButton" onclick="openGlobalLeaderboard()" style="position:fixed;left:12px;bottom:12px;z-index:5000;padding:9px 12px;border-radius:10px;border:2px solid #65e6a0;background:#0b2b21;color:white;font-size:12px;font-weight:bold;cursor:pointer;max-width:190px">🏆 GLOBAL LEADERBOARD</button>
+<button id="postGlobalScoreButton" onclick="saveGlobalScore()" style="display:none;position:fixed;left:12px;bottom:58px;z-index:5000;padding:9px 12px;border-radius:10px;border:2px solid #ffd76a;background:#4a3610;color:white;font-size:12px;font-weight:bold;cursor:pointer;max-width:190px">POST FINAL SCORE</button>
+<div id="wrap">
+ <div id="gameMenu">
+  <button class="menuBtn" id="restartGame">↻ RESTART GAME</button>
+  <button class="menuBtn" id="changeHero">★ CHANGE HERO</button>
+ </div>
+ <div id="currentHero" style="margin-bottom:7px;background:#102d22;border:2px solid #63d8a4;border-radius:12px;padding:8px;text-align:center;font-weight:900;color:#7cf0bd">CURRENT HERO: <span id="heroName">SUPER SUMMY</span></div>
+<div id="hud">
+  <div class="card">SCORE<br><span id="score">0</span> &nbsp; • &nbsp; POINTS <span id="points">0</span></div>
+  <div class="card">LIVES<br><span id="lives">♥ ♥ ♥</span><br><span id="shieldHud" style="font-size:11px;color:#8ee8ff"></span></div>
+  <div class="card" id="powerCard">POWER <span id="count">0</span>/<span id="goal">15</span><div id="powerBar"><div id="powerFill"></div></div></div>
+ </div>
+ <div id="stage">
+  <canvas id="game" width="600" height="800"></canvas>
+  <div id="overlay">
+   <div class="panel">
+    <h1>HEALTHIA<br>TRASH BLASTERS</h1>
+    <p>Destroy pollution formations. Each hero charges at a different rate: <b>Summy 15 kills</b>, <b>Sadie 20 kills</b>, and <b>Vee 15 kills</b>. Use it to wipe out everything directly in front of you.</p>
+    <div class="heroes">
+     <button class="heroBtn sel" data-hero="summy"><span class="mini">🌎</span>SUPER SUMMY<br><small>Whirlwind Column • 15 Kills</small></button>
+     <button class="heroBtn" data-hero="sadie"><span class="mini">♻️</span>SUPER SADIE<br><small>Row Smash • 20 Kills</small></button>
+     <button class="heroBtn" data-hero="vee"><span class="mini">♻️</span>SUPER VEE<br><small>7 Sec Invincibility • 15 Kills</small></button>
+    </div>
+    <button class="start" id="start">START MISSION</button>
+   </div>
+  </div>
+ </div>
+ <div id="controls">
+  <button class="ctrl" id="left">◀</button>
+  <button class="ctrl" id="powerBtn">POWER</button>
+  <button class="ctrl" id="right">▶</button>
+ </div>
+ <div id="help">Move: ← → &nbsp; • &nbsp; Shoot: SPACE &nbsp; • &nbsp; Power: ↑ or POWER</div>
+</div>
+<script>
+(()=>{
+const c=document.getElementById('game'),x=c.getContext('2d'),W=c.width,H=c.height;
+const scoreEl=document.getElementById('score'),pointsEl=document.getElementById('points'),heroNameEl=document.getElementById('heroName'),livesEl=document.getElementById('lives'),shieldHud=document.getElementById('shieldHud'),countEl=document.getElementById('count'),goalEl=document.getElementById('goal'),fill=document.getElementById('powerFill'),pc=document.getElementById('powerCard'),pb=document.getElementById('powerBtn'),ov=document.getElementById('overlay');
+let hero='summy',running=false,score=0,points=0,lives=3,charge=0,wave=1,beamDuration=.55,powerTraining=0,shield=0,shieldBoughtThisWave=false,inShop=false,boss=null,last=0,shootCd=0,enemyShotCd=0,formationT=0,formationDir=1,keys={},raf;
+let player,shots=[],enemyShots=[],enemies=[],particles=[],beam=0,inv=0,powerFx='';
+const heroBtns=[...document.querySelectorAll('.heroBtn')];
+heroBtns.forEach(b=>b.onclick=()=>{hero=b.dataset.hero;heroBtns.forEach(q=>q.classList.toggle('sel',q===b))});
+function basePowerGoal(){return hero==='sadie'?20:15}
+function powerGoal(){return Math.max(1,basePowerGoal()-powerTraining)}
+function resetPlayer(){player={x:W/2,y:H-90,w:44,h:58,speed:330}}
+function makeWave(){
+ enemies=[];boss=null;
+ if(wave%10===0){
+   makeBoss();
+   return;
+ }
+ const rows=Math.min(6,3+Math.floor((wave-1)/3));
+ const cols=7;
+ const tier=Math.floor((wave-1)/10);
+ const tough=wave>=4;
+ for(let r=0;r<rows;r++){
+   for(let c=0;c<cols;c++){
+     // Starting at wave 4, some trash needs two hits. Higher tiers gradually add HP.
+     let hp=1;
+     if(tough && ((r+c+wave)%3===0)) hp=2;
+     if(tier>=2 && ((r*2+c+wave)%5===0)) hp=Math.min(4,2+Math.floor(tier/2));
+     let kind='bottle';
+     if(wave>=4 && (r+c+wave)%4===0)kind='bag';
+     if(wave>=6 && (r*2+c+wave)%7===0)kind='styro';
+     if(wave>=8 && (r+c*2+wave)%9===0)kind='oil';
+     if(wave>=9 && (r*3+c+wave)%11===0)kind='toxic';
+     if(kind==='bag')hp=Math.max(hp,2);
+     if(kind==='styro')hp=Math.max(hp,Math.min(4,3+Math.floor(tier/3)));
+     if(kind==='toxic')hp=Math.max(hp,2);
+     enemies.push({
+       x:W/2-234+c*78,y:105+r*58,bx:W/2-234+c*78,by:105+r*58,
+       alive:true,hp,maxHp:hp,phase:(r+c)*.4,type:kind,kind,r:18,shot:1+Math.random()*2
+     });
+   }
+ }
+ formationX=0;formationDir=1;formationSpeed=Math.min(90,24+wave*2.2);
+}
+function makeBoss(){
+ const tier=Math.max(1,Math.floor(wave/10));
+ const maxHp=45+tier*20;
+ boss={x:W/2,y:145,w:170,h:105,hp:maxHp,maxHp,dir:1,speed:70+Math.min(90,tier*7),shot:0,rage:false};
+}
+function damageBoss(amount=1){
+ if(!boss||boss.hp<=0)return;
+ boss.hp=Math.max(0,boss.hp-amount);
+ score+=10;points+=10;
+ if(boss.hp<=boss.maxHp*.35)boss.rage=true;
+ updateHud();
+ if(boss.hp<=0){
+   // Boss defeat bonus is deliberately score/points earned, not a shop-only bonus.
+   const bonus=100+wave*5;score+=bonus;points+=bonus;boss=null;updateHud();openShop();
+ }
+}
+
+function start(){
+ const _pg=document.getElementById('postGlobalScoreButton');if(_pg)_pg.style.display='none';score=0;points=0;lives=3;charge=0;wave=1;beamDuration=.55;powerTraining=0;shield=0;shieldBoughtThisWave=false;inShop=false;boss=null;shots=[];enemyShots=[];particles=[];beam=0;powerFx='';inv=0;resetPlayer();makeWave();running=true;ov.style.display='none';updateHud();last=performance.now();cancelAnimationFrame(raf);raf=requestAnimationFrame(loop)}
+document.getElementById('start').onclick=start;
+document.getElementById('restartGame').onclick=start;
+document.getElementById('changeHero').onclick=showHeroChooser;
+function heroDisplayName(){return hero==='sadie'?'SUPER SADIE':hero==='vee'?'SUPER VEE':'SUPER SUMMY'}
+function updateHud(){scoreEl.textContent=score;pointsEl.textContent=points;heroNameEl.textContent=heroDisplayName();livesEl.textContent='♥ '.repeat(lives).trim();shieldHud.textContent=shield?'🛡 SHIELD READY':'';countEl.textContent=charge;let goal=powerGoal();goalEl.textContent=goal;fill.style.width=(charge/goal*100)+'%';let ready=charge>=goal;pc.classList.toggle('ready',ready);pb.classList.toggle('ready',ready);pb.textContent=ready?'POWER READY!':'POWER'}
+function shoot(){if(!running||shootCd>0)return;shots.push({x:player.x,y:player.y-34,vy:-620});shootCd=.18}
+function power(){
+ if(!running||charge<powerGoal()||beam>0)return;
+ charge=0;updateHud();
+ if(boss){if(hero==='summy'||hero==='sadie')damageBoss(8); if(hero==='vee'){inv=Math.max(inv,7)} return;}
+
+ if(hero==='summy'){
+   // Super Summy: vertical whirlwind column directly in front of her.
+   beam=beamDuration;powerFx='summy';
+   const lane=78;
+   enemies.forEach(e=>{if(e.alive&&Math.abs(e.x-player.x)<lane/2)kill(e,true)});
+   enemyShots=enemyShots.filter(s=>Math.abs(s.x-player.x)>=lane/2);
+ }
+ else if(hero==='sadie'){
+   // Super Sadie: super-strength shockwave destroys one entire horizontal enemy row.
+   beam=Math.max(.7,Math.min(beamDuration,1.5));powerFx='sadie';
+   const alive=enemies.filter(e=>e.alive);
+   if(alive.length){
+     // Choose the lowest surviving row, the row closest to Sadie.
+     const targetY=Math.max(...alive.map(e=>e.by));
+     enemies.forEach(e=>{if(e.alive&&Math.abs(e.by-targetY)<8)kill(e,true)});
+     enemyShots=enemyShots.filter(s=>Math.abs(s.y-targetY)>42);
+   }
+ }
+ else {
+   // Super Vee: no attack. Her power is seven seconds of complete invincibility.
+   beam=.01;powerFx='vee';inv=Math.max(inv,7);
+ }
+}
+function damageEnemy(e,amount=1){
+ if(!e||!e.alive)return;
+ e.hp-=amount;
+ if(e.hp<=0)kill(e,false);
+ else for(let i=0;i<4;i++)particles.push({x:e.x,y:e.y,vx:(Math.random()-.5)*100,vy:(Math.random()-.5)*100,t:.22});
+}
+function kill(e,powered=false){if(!e.alive)return;e.alive=false;score+=10;points+=10;if(!powered){charge=Math.min(powerGoal(),charge+1)};for(let i=0;i<9;i++)particles.push({x:e.x,y:e.y,vx:(Math.random()-.5)*180,vy:(Math.random()-.5)*180,t:.45});updateHud()}
+function hitPlayer(){if(inv>0)return;if(shield){shield=0;inv=1.0;updateHud();return}lives--;inv=1.6;updateHud();if(lives<=0)gameOver()}
+function openShop(){
+ inShop=true;running=false;cancelAnimationFrame(raf);
+ ov.style.display='flex';
+ ov.innerHTML=`<div class="panel"><h1>WAVE ${wave} CLEARED!</h1>
+ <p>Spend your points before the next wave.<br><b>POINTS: <span id="shopPts">${points}</span></b></p>
+ <div class="shop">
+  <div class="shopItem"><div style="font-size:30px">⚡</div><h3>POWER TRAINING</h3><p>Get your hero power <b>1 kill sooner</b> each purchase.<br>Purchased: <b id="trainingCount">${powerTraining}/10</b><br>Current requirement: <b id="trainingGoal">${powerGoal()} kills</b></p><button class="buy" data-buy="training">600 POINTS</button></div>
+  <div class="shopItem"><div style="font-size:30px">♥</div><h3>EXTRA LIFE</h3><p>Add <b>1 life</b> immediately.<br>Maximum: <b>7 lives</b>.</p><button class="buy" data-buy="life">600 POINTS</button></div>
+  <div class="shopItem"><div style="font-size:30px">🛡️</div><h3>SHIELD</h3><p>Blocks the next hit completely.<br><b>One shield per wave.</b></p><button class="buy" data-buy="shield">300 POINTS</button></div>
+ </div>
+ <button class="start" id="nextWave">START WAVE ${wave+1}</button></div>`;
+ document.querySelectorAll('.buy').forEach(b=>b.addEventListener('click',()=>buyUpgrade(b.dataset.buy)));
+ document.getElementById('nextWave').onclick=nextWave;
+ refreshShop();
+}
+function refreshShop(){
+ let pts=document.getElementById('shopPts');if(pts)pts.textContent=points;
+ let tc=document.getElementById('trainingCount');if(tc)tc.textContent=powerTraining+'/10';
+ let tg=document.getElementById('trainingGoal');if(tg)tg.textContent=powerGoal()+' kills';
+ document.querySelectorAll('.buy').forEach(b=>{
+   let cost=b.dataset.buy==='shield'?300:600;
+   let blocked=points<cost;
+   if(b.dataset.buy==='training'&&powerTraining>=10)blocked=true;
+   if(b.dataset.buy==='life'&&lives>=7)blocked=true;
+   if(b.dataset.buy==='shield'&&(shield>0||shieldBoughtThisWave))blocked=true;
+   b.disabled=blocked;
+   if(b.dataset.buy==='training'&&powerTraining>=10)b.textContent='MAX 10 PURCHASED';
+   else if(b.dataset.buy==='life'&&lives>=7)b.textContent='MAX 7 LIVES';
+   else if(b.dataset.buy==='shield'&&(shield>0||shieldBoughtThisWave))b.textContent='SHIELD LIMIT REACHED';
+ });
+ updateHud();
+}
+function buyUpgrade(type){
+ let cost=type==='shield'?300:600;
+ if(points<cost)return;
+ if(type==='training'&&powerTraining>=10)return;
+ if(type==='life'&&lives>=7)return;
+ if(type==='shield'&&(shield||shieldBoughtThisWave))return;
+ points-=cost;
+ if(type==='training'){powerTraining++;charge=Math.min(charge,powerGoal())}
+ if(type==='life')lives=Math.min(7,lives+1);
+ if(type==='shield'){shield=1;shieldBoughtThisWave=true}
+ refreshShop();
+}
+function nextWave(){
+ wave++;inShop=false;shieldBoughtThisWave=false;shots=[];enemyShots=[];beam=0;powerFx='';makeWave();ov.style.display='none';running=true;last=performance.now();updateHud();raf=requestAnimationFrame(loop);
+}
+
+function getScores(){
+ try{return JSON.parse(localStorage.getItem('healthiaTrashBlastersScores')||'[]')}catch(e){return[]}
+}
+function saveScore(name){
+ name=(name||'PLAYER').trim().slice(0,14)||'PLAYER';
+ let arr=getScores();arr.push({name,score,wave,hero});arr.sort((a,b)=>b.score-a.score);arr=arr.slice(0,10);
+ try{localStorage.setItem('healthiaTrashBlastersScores',JSON.stringify(arr))}catch(e){}
+ renderScores();
+}
+function renderScores(){
+ const el=document.getElementById('leaderList');if(!el)return;
+ const arr=getScores();
+ el.innerHTML=arr.length?arr.map(q=>`<li><b>${escapeHtml(q.name)}</b> — ${q.score} pts (Wave ${q.wave})</li>`).join(''):'<li>No scores posted yet.</li>';
+}
+function escapeHtml(v){return String(v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function showHeroChooser(){
+ running=false;cancelAnimationFrame(raf);ov.style.display='flex';
+ ov.innerHTML=`<div class="panel"><h1>CHOOSE YOUR HERO</h1><p>Changing heroes starts a new game.</p>
+ <div class="heroes">
+ <button class="heroBtn heroPick ${hero==='summy'?'sel':''}" data-pick="summy"><span class="mini">🌎</span>SUPER SUMMY<br><small>Whirlwind Column • 15 Kills</small></button>
+ <button class="heroBtn heroPick ${hero==='sadie'?'sel':''}" data-pick="sadie"><span class="mini">♻️</span>SUPER SADIE<br><small>Row Smash • 20 Kills</small></button>
+ <button class="heroBtn heroPick ${hero==='vee'?'sel':''}" data-pick="vee"><span class="mini">♻️</span>SUPER VEE<br><small>7 Sec Invincibility • 15 Kills</small></button>
+ </div><button class="start" id="heroStart">START NEW GAME</button></div>`;
+ ov.querySelectorAll('.heroPick').forEach(b=>b.addEventListener('click',()=>{hero=b.dataset.pick;ov.querySelectorAll('.heroPick').forEach(q=>q.classList.toggle('sel',q===b))}));
+ document.getElementById('heroStart').onclick=start;
+}
+
+function updateBoss(dt){
+ if(!boss)return;
+ boss.x+=boss.dir*boss.speed*dt;
+ if(boss.x>W-boss.w/2-32){boss.x=W-boss.w/2-32;boss.dir=-1}
+ if(boss.x<boss.w/2+32){boss.x=boss.w/2+32;boss.dir=1}
+ boss.shot-=dt;
+ const tier=Math.max(1,Math.floor(wave/10));
+ const rate=boss.rage?Math.max(.28,.72-tier*.025):Math.max(.42,1.05-tier*.03);
+ if(boss.shot<=0){
+   boss.shot=rate;
+   const count=boss.rage?3:Math.min(3,1+Math.floor(tier/3));
+   for(let i=0;i<count;i++){
+     const spread=(i-(count-1)/2)*55;
+     enemyShots.push({x:boss.x+spread,y:boss.y+boss.h/2-2,vx:spread*.18,vy:190+Math.min(170,tier*12),r:7});
+   }
+ }
+}
+function drawBoss(){
+ if(!boss)return;
+ const b=boss;
+ // Boss health bar
+ x.fillStyle='rgba(0,0,0,.65)';x.fillRect(90,42,W-180,24);
+ x.fillStyle=b.rage?'#ff624d':'#80df72';x.fillRect(94,46,(W-188)*(b.hp/b.maxHp),16);
+ x.strokeStyle='#fff';x.lineWidth=2;x.strokeRect(90,42,W-180,24);
+ x.fillStyle='#fff';x.font='bold 14px Arial';x.textAlign='center';
+ x.fillText('POLLUTION MONSTER  '+b.hp+'/'+b.maxHp,W/2,60);
+ // Giant trash/sludge monster
+ x.save();x.translate(b.x,b.y);
+ x.fillStyle=b.rage?'#63382d':'#3f5949';
+ x.beginPath();x.ellipse(0,5,b.w/2,b.h/2,0,0,Math.PI*2);x.fill();
+ x.fillStyle='#718c79';
+ for(let i=-60;i<=60;i+=30){x.beginPath();x.arc(i,-32+(Math.abs(i)%25),20,0,Math.PI*2);x.fill()}
+ x.fillStyle='#fff';x.beginPath();x.arc(-32,-8,13,0,Math.PI*2);x.arc(32,-8,13,0,Math.PI*2);x.fill();
+ x.fillStyle='#151515';x.beginPath();x.arc(-28,-6,6,0,Math.PI*2);x.arc(28,-6,6,0,Math.PI*2);x.fill();
+ x.fillStyle='#1a1717';x.fillRect(-38,23,76,15);
+ x.fillStyle='#e6e6e6';for(let i=-30;i<=30;i+=20){x.beginPath();x.moveTo(i,23);x.lineTo(i+8,38);x.lineTo(i+15,23);x.fill()}
+ x.fillStyle='#9dd8ff';x.fillRect(-72,-2,18,36);x.fillStyle='#ddd';x.fillRect(55,-18,18,40);
+ x.restore();
+}
+function gameOver(){
+ document.getElementById('postGlobalScoreButton').style.display='block';
+ running=false;ov.style.display='flex';
+ ov.innerHTML=`<div class="panel"><h1>MISSION OVER</h1><p>Score: <b>${score}</b><br>Wave reached: <b>${wave}</b></p>
+ <div id="leaderBox"><h3>🏆 HIGH SCORES</h3><ol id="leaderList"></ol>
+ <div class="scoreForm"><input id="playerName" maxlength="14" placeholder="Your name" aria-label="Your name"><button id="postScore">POST SCORE</button></div></div>
+ <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="start" id="again">PLAY AGAIN</button><button class="start" id="pickAgain">CHANGE HERO</button></div></div>`;
+ renderScores();
+ document.getElementById('postScore').onclick=()=>{saveScore(document.getElementById('playerName').value);document.getElementById('postScore').disabled=true;document.getElementById('postScore').textContent='POSTED'};
+ document.getElementById('again').onclick=start;
+ document.getElementById('pickAgain').onclick=showHeroChooser;
+}
+function circleHit(a,b,rr){return (a.x-b.x)**2+(a.y-b.y)**2<rr*rr}
+function update(dt){
+ updateBoss(dt);
+ if(keys.ArrowLeft)player.x-=player.speed*dt;if(keys.ArrowRight)player.x+=player.speed*dt;
+ player.x=Math.max(35,Math.min(W-35,player.x));
+ shootCd-=dt;enemyShotCd-=dt;beam-=dt;inv-=dt;formationT+=formationDir*45*dt;
+ // Formation travel is deliberately limited so outer columns stay comfortably on-screen.
+ if(Math.abs(formationT)>28){formationT=Math.sign(formationT)*28;formationDir*=-1;}
+
+ shots.forEach(s=>s.y+=s.vy*dt);
+ enemyShots.forEach(s=>{s.y+=s.vy*dt;s.x+=(s.vx||0)*dt});
+ shots=shots.filter(s=>s.y>-30&&!s.dead);
+ enemyShots=enemyShots.filter(s=>s.y<H+30);
+
+ const tm=performance.now()/1000;
+ enemies.forEach(e=>{
+   if(!e.alive)return;
+   e.x=e.bx+formationT;
+   e.y=e.by+Math.sin(tm*2+e.phase)*4;
+   if(e.kind==='oil'){e.x+=Math.sin(tm*3+e.phase)*20;e.y+=Math.sin(tm*2.3+e.phase)*9}
+   // HARD PLAYFIELD BOUNDS: every enemy must remain fully visible and shootable.
+   const enemyMargin=(e.r||18)+8;
+   e.x=Math.max(enemyMargin,Math.min(W-enemyMargin,e.x));
+   e.y=Math.max(82+enemyMargin,Math.min(player.y-75,e.y));
+   if(e.kind==='toxic'){
+     e.shot-=dt;
+     if(e.shot<=0){
+       e.shot=Math.max(.65,1.8-wave*.012)+Math.random()*.4;
+       enemyShots.push({x:e.x,y:e.y+18,vx:Math.sin(tm+e.phase)*28,vy:205+Math.min(110,wave*3)});
+     }
+   }
+ });
+
+ // Player shots can hit the boss or normal trash.
+ for(const s of shots){
+   if(s.dead)continue;
+   if(boss&&boss.hp>0&&s.y>boss.y-boss.h/2&&s.y<boss.y+boss.h/2&&Math.abs(s.x-boss.x)<boss.w/2){
+     s.dead=true;damageBoss(1);continue;
+   }
+   for(const e of enemies){
+     if(e.alive&&circleHit(s,e,(e.r||18)+6)){s.dead=true;damageEnemy(e,1);break}
+   }
+ }
+ shots=shots.filter(s=>!s.dead);
+
+ for(const s of enemyShots){
+   if(inv<=0&&Math.abs(s.x-player.x)<22&&Math.abs(s.y-player.y)<28){s.y=H+100;hitPlayer()}
+ }
+
+ // Standard formation fire. Toxic enemies additionally fire independently above.
+ if(enemyShotCd<=0&&!boss){
+   let alive=enemies.filter(e=>e.alive);
+   if(alive.length){
+     let e=alive[Math.floor(Math.random()*alive.length)];
+     enemyShots.push({x:e.x,y:e.y+20,vx:0,vy:230+wave*12});
+     enemyShotCd=Math.max(.35,1.25-wave*.06);
+   }
+ }
+
+ let alive=enemies.filter(e=>e.alive);
+ if(!boss&&!alive.length&&!inShop)openShop();
+
+ particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.t-=dt});
+ particles=particles.filter(p=>p.t>0);
+}
+function drawHero(){
+ x.save();if(inv>0&&Math.floor(inv*10)%2===0)x.globalAlpha=.3;
+ // body
+ let suit=hero==='sadie'?'#1da765':hero==='vee'?'#f2f5ef':'#1b8e68';
+ x.fillStyle=suit;x.beginPath();x.moveTo(player.x,player.y-31);x.lineTo(player.x-23,player.y+24);x.lineTo(player.x+23,player.y+24);x.closePath();x.fill();
+ x.fillStyle='#9a5e3e';if(hero==='vee')x.fillStyle='#b97c58';x.beginPath();x.arc(player.x,player.y-35,17,0,7);x.fill();
+ // hair distinction
+ x.fillStyle=hero==='sadie'?'#d7a73d':'#171411';x.beginPath();x.arc(player.x,player.y-43,19,Math.PI,Math.PI*2);x.fill();
+ if(hero==='sadie'){x.fillStyle='#f3c94e';x.fillRect(player.x+12,player.y-58,14,8)}
+ if(hero==='vee'){x.fillStyle='white';x.beginPath();x.arc(player.x+14,player.y-57,7,0,7);x.fill()}
+ if(hero==='summy'){x.strokeStyle='#111';x.lineWidth=3;x.strokeRect(player.x-14,player.y-39,11,7);x.strokeRect(player.x+3,player.y-39,11,7)}
+ // emblem
+ x.fillStyle=hero==='vee'?'#1a9c61':'white';x.beginPath();x.arc(player.x,player.y+2,10,0,7);x.fill();
+ x.fillStyle=hero==='summy'?'#1673b5':'#188e55';x.font='bold 13px Arial';x.textAlign='center';x.fillText(hero==='summy'?'🌎':'♻',player.x,player.y+7);
+ x.restore()
+}
+function draw(){
+ x.clearRect(0,0,W,H);
+ // stars / eco particles
+ x.fillStyle='#174d3a';for(let i=0;i<28;i++){let xx=(i*97)%W,yy=(i*151)%H;x.fillRect(xx,yy,2,2)}
+ x.textAlign='center';x.font='bold 18px Arial';x.fillStyle='#77e8b6';x.fillText('WAVE '+wave,W/2,30);
+ enemies.forEach(e=>{
+ if(!e.alive)return;
+ x.save();x.translate(e.x,e.y);x.textAlign='center';
+ let ratio=e.hp/e.maxHp;
+ x.fillStyle=ratio>.66?'#143b2d':ratio>.33?'#655326':'#682e28';
+ x.beginPath();x.arc(0,0,23,0,Math.PI*2);x.fill();
+ if(e.kind==='bottle'){x.font='28px Arial';x.fillText('🧴',0,10)}
+ else if(e.kind==='bag'){x.font='28px Arial';x.fillText('🗑️',0,10)}
+ else if(e.kind==='styro'){x.fillStyle='#f1f1eb';x.beginPath();x.arc(0,0,16,0,7);x.fill();x.fillStyle='#555';x.font='bold 9px Arial';x.fillText('FOAM',0,3)}
+ else if(e.kind==='oil'){x.fillStyle='#111';x.beginPath();x.moveTo(0,-18);x.quadraticCurveTo(19,5,0,20);x.quadraticCurveTo(-19,5,0,-18);x.fill();x.fillStyle='#8fe7ff';x.beginPath();x.arc(-5,5,3,0,7);x.fill()}
+ else {x.fillStyle='#8bd65d';x.fillRect(-15,-16,30,32);x.fillStyle='#332033';x.font='bold 8px Arial';x.fillText('TOXIC',0,3)}
+ if(e.hp<e.maxHp){x.strokeStyle='#fff';x.lineWidth=2;x.beginPath();x.moveTo(-12,-13);x.lineTo(-3,-4);x.lineTo(-9,5);x.lineTo(3,14);x.stroke()}
+ if(e.maxHp>1){x.fillStyle='#fff';x.font='bold 10px Arial';x.fillText(e.hp+'/'+e.maxHp,0,34)}
+ x.restore();
+});
+ x.fillStyle='#8df6ca';shots.forEach(s=>{x.fillRect(s.x-3,s.y-13,6,20)});
+ x.fillStyle='#ff8b68';enemyShots.forEach(s=>{x.beginPath();x.arc(s.x,s.y,6,0,7);x.fill()});
+ if(beam>0){
+   if(powerFx==='sadie'){
+     // Horizontal strength shockwave across the enemy formation.
+     let alive=enemies.filter(e=>e.alive);
+     let yy=alive.length?Math.max(...alive.map(e=>e.by)):330;
+     x.fillStyle='rgba(255,220,90,.34)';x.fillRect(35,yy-34,W-70,68);
+     x.strokeStyle='#ffe15c';x.lineWidth=8;x.beginPath();x.moveTo(35,yy);x.lineTo(W-35,yy);x.stroke();
+   } else if(powerFx==='summy'){
+     let col='rgba(255,231,90,.82)';
+     let grad=x.createLinearGradient(player.x-40,0,player.x+40,0);
+     grad.addColorStop(0,'rgba(255,255,255,0)');grad.addColorStop(.5,col);grad.addColorStop(1,'rgba(255,255,255,0)');
+     x.fillStyle=grad;x.fillRect(player.x-42,0,84,player.y-30);
+     x.fillStyle='#fff5a8';x.fillRect(player.x-5,0,10,player.y-30);
+   }
+ }
+ if(hero==='vee'&&inv>0){
+   x.fillStyle='rgba(120,235,255,.12)';x.beginPath();x.arc(player.x,player.y-5,45,0,Math.PI*2);x.fill();
+   x.strokeStyle='rgba(145,245,255,.95)';x.lineWidth=5;x.beginPath();x.arc(player.x,player.y-5,42,0,Math.PI*2);x.stroke();
+   x.fillStyle='#c7fbff';x.font='bold 13px Arial';x.fillText('INVINCIBLE '+Math.max(0,inv).toFixed(1)+'s',player.x,player.y+57);
+ }
+ particles.forEach(p=>{x.globalAlpha=Math.max(0,p.t/.45);x.fillStyle='#78e9b8';x.fillRect(p.x,p.y,5,5)});x.globalAlpha=1;
+ drawHero()
+
+ drawBoss();
+}
+function loop(t){if(!running)return;let dt=Math.min(.025,(t-last)/1000);last=t;update(dt);draw();raf=requestAnimationFrame(loop)}
+window.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','Space'].includes(e.code))e.preventDefault();keys[e.code]=true;if(e.code==='Space')shoot();if(e.code==='ArrowUp')power()});
+window.addEventListener('keyup',e=>keys[e.code]=false);
+function hold(id,key){let b=document.getElementById(id);b.addEventListener('pointerdown',e=>{e.preventDefault();keys[key]=true;b.setPointerCapture(e.pointerId)});['pointerup','pointercancel','lostpointercapture'].forEach(ev=>b.addEventListener(ev,()=>keys[key]=false))}
+hold('left','ArrowLeft');hold('right','ArrowRight');pb.addEventListener('pointerdown',e=>{e.preventDefault();power()});
+c.addEventListener('pointerdown',e=>{if(running){e.preventDefault();shoot()}});
+})();
+</script>
+
+<div id="globalLeaderboard" style="display:none;position:fixed;inset:0;background:rgba(4,12,11,.94);z-index:9999;color:white;font-family:Arial,sans-serif;overflow:auto">
+  <div style="width:min(680px,calc(100% - 24px));box-sizing:border-box;margin:20px auto;padding:20px;background:#0d2922;border:2px solid #45d68a;border-radius:18px">
+    <h2 style="margin:0 0 6px;text-align:center;color:#7dffb6">HEALTHIA GLOBAL LEADERBOARD</h2>
+    <p style="text-align:center;margin:0 0 18px;color:#c7e8d7">Trash Blasters • Top 10</p>
+    <div id="globalBoardStatus" style="text-align:center;margin:10px">Loading...</div>
+    <div id="globalBoardRows"></div>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:18px">
+      <button onclick="refreshGlobalLeaderboard()" style="padding:12px 18px;font-weight:bold">REFRESH</button>
+      <button onclick="closeGlobalLeaderboard()" style="padding:12px 18px;font-weight:bold">CLOSE</button>
+    </div>
+  </div>
+</div>
+<script>
+function heroDisplay(h){
+  return h==='sadie'?'Super Sadie':h==='vee'?'Super Vee':'Super Summy';
+}
+async function refreshGlobalLeaderboard(){
+  const st=document.getElementById('globalBoardStatus'), rows=document.getElementById('globalBoardRows');
+  st.style.display='block';st.textContent='Loading global scores...';rows.innerHTML='';
+  try{
+    const data=await window.HEALTHIA_LEADERBOARD.loadGlobalScores();
+    st.style.display=data.length?'none':'block';
+    if(!data.length)st.textContent='No global scores yet.';
+    data.forEach((r,i)=>{
+      const d=document.createElement('div');
+      d.style.cssText='display:grid;grid-template-columns:34px minmax(85px,1.5fr) minmax(65px,1fr) 48px minmax(82px,1fr);gap:6px;padding:10px 4px;border-bottom:1px solid #315b4d;align-items:center;font-size:13px;';
+      const safe=document.createElement('span');safe.textContent=r.player_name||'PLAYER';
+      d.innerHTML='<b>#'+(i+1)+'</b><span class="pname"></span><b>'+Number(r.score||0).toLocaleString()+'</b><span>W'+Number(r.wave||1)+'</span><span>'+heroDisplay(r.hero)+'</span>';
+      d.querySelector('.pname').replaceWith(safe);rows.appendChild(d);
+    });
+  }catch(e){st.style.display='block';st.textContent='Leaderboard not connected yet: '+e.message}
+}
+function openGlobalLeaderboard(){document.getElementById('globalLeaderboard').style.display='block';refreshGlobalLeaderboard()}
+function closeGlobalLeaderboard(){document.getElementById('globalLeaderboard').style.display='none'}
+async function saveGlobalScore(){
+  const name=prompt('Enter your leaderboard name (18 characters max):','PLAYER');
+  if(name===null)return;
+  const result=await window.HEALTHIA_LEADERBOARD.submitGlobalScore(name,score,wave,hero);
+  if(result.ok){alert('Score posted to the HEALTHIA global leaderboard!');openGlobalLeaderboard()}
+  else alert('Score could not be posted yet: '+result.error);
+}
+</script>
+</body>
+</html>
