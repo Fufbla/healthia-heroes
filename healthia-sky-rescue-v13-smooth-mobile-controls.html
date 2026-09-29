@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HEALTHIA Sky Rescue V9 — Leaderboard Fix</title>
+<style>
+:root{--green:#118a55;--dark:#102b32;--sky:#66c4ea;--panel:#fff;--muted:#63767b;--gold:#ffd54a}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#eaf5f3;color:var(--dark)}
+#gamePanel,#gamePanel *{
+  -webkit-user-select:none!important;
+  user-select:none!important;
+  -webkit-touch-callout:none!important;
+  -webkit-user-drag:none!important;
+}
+#game,.controls,.ctrl{touch-action:none}
+body.game-active{overscroll-behavior:none}
+#app{max-width:980px;margin:auto;padding:14px}h1{margin:4px 0;text-align:center}.tag{text-align:center;color:var(--muted);margin-bottom:12px}
+.panel{background:#fff;border:1px solid #cbdad7;border-radius:18px;padding:16px;margin-bottom:12px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.card{border:2px solid #d8e4e1;border-radius:14px;padding:12px;text-align:center;cursor:pointer}.card.sel{border-color:var(--green);background:#edf9f3}
+.heroIcon{height:74px;display:flex;align-items:center;justify-content:center;font-size:44px}.btn{border:0;border-radius:12px;padding:12px 16px;background:var(--green);color:#fff;font-weight:800;cursor:pointer;min-height:44px}.btn:disabled{opacity:.45;cursor:not-allowed}.minor{background:#fff;color:var(--dark);border:1px solid #aebfbc}
+.row{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap}.room{display:none;margin-top:16px;border-top:1px solid #dce7e4;padding-top:16px}.room input{padding:12px;border:1px solid #9fb3ae;border-radius:10px;font-size:16px;text-transform:uppercase;width:180px}
+.code{font-size:30px;letter-spacing:5px;font-weight:900;color:var(--green)}#players{max-width:500px;margin:10px auto;text-align:left}#players div{padding:8px;border-bottom:1px solid #e2ebe8}
+#gamePanel{display:none}.hud{display:grid;grid-template-columns:1fr 1.3fr 1fr;gap:10px;align-items:center;margin-bottom:8px}.hudBox{background:#f3f8f7;border-radius:12px;padding:9px;text-align:center}.big{font-size:22px;font-weight:900}
+.meter{height:14px;background:#dce8e5;border-radius:99px;overflow:hidden}.meter>div{height:100%;width:0;background:var(--green);transition:width .12s linear}
+.canvasWrap{position:relative;border-radius:16px;overflow:hidden;border:1px solid #b7cbc6;background:#77c9e8}canvas{display:block;width:100%;height:auto}
+#overlay{display:none;position:absolute;inset:0;background:#0a1d24aa;color:#fff;align-items:center;justify-content:center;text-align:center;padding:20px}.controls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px}.ctrl{min-height:54px;font-size:18px}
+.raceboard{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:10px 0}.racer{background:#f4f8f7;border-radius:10px;padding:8px;font-size:13px}.racer.me{outline:2px solid var(--green)}
+.slow{color:#b64a23;font-weight:900}.ready{color:var(--green);font-weight:900}.finish{color:#a37800;font-weight:900}
+.resultsPanel{display:none;background:#fff;border:2px solid #b9d9ce;border-radius:18px;padding:18px;margin-top:12px}
+.resultsPanel h2,.resultsPanel h3{text-align:center;margin:6px 0 12px}
+.resultHero{text-align:center;font-size:18px;font-weight:900;color:var(--green);margin-bottom:12px}
+.nameRow{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:12px 0}
+.nameRow input{padding:12px;border:1px solid #9fb3ae;border-radius:10px;font-size:16px;width:220px}
+.lb{max-width:650px;margin:10px auto;border:1px solid #d9e6e2;border-radius:12px;overflow:hidden}
+.lbrow{display:grid;grid-template-columns:52px 1fr 100px 90px;gap:8px;padding:9px 10px;border-bottom:1px solid #e7efed;align-items:center}
+.lbrow:last-child{border-bottom:0}.lbhead{background:#eef7f3;font-weight:900}.lbme{background:#fff7cf}
+.smallnote{text-align:center;color:var(--muted);font-size:12px;margin-top:8px}
+@media(max-width:650px){.cards,.raceboard{grid-template-columns:1fr}.hud{grid-template-columns:1fr 1fr}.hud .powerBox{grid-column:1/-1}.card{padding:7px}.heroIcon{height:45px;font-size:34px}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div id="app">
+<h1>HEALTHIA: SKY RESCUE</h1>
+<div class="tag">Online race • Up to 3 players • Cross the HEALTHIA finish line at 2,000m</div>
+
+<section id="lobby" class="panel">
+<h2 style="text-align:center;margin-top:0">Choose Your Hero</h2>
+<div class="cards">
+  <div class="card sel" data-hero="Summy"><div class="heroIcon">🌎</div><b>SUPER SUMMY</b><br><small>Whirlwind</small></div>
+  <div class="card" data-hero="Sadie"><div class="heroIcon">💪</div><b>SUPER SADIE</b><br><small>Strength</small></div>
+  <div class="card" data-hero="Vee"><div class="heroIcon">👻</div><b>SUPER VEE</b><br><small>Invisible to trash</small></div>
+</div>
+<div class="row" style="margin-top:16px"><button id="single" class="btn">SINGLE PLAYER</button><button id="online" class="btn">ONLINE MULTIPLAYER</button></div>
+<div id="roomBox" class="room">
+  <h3 style="text-align:center">1–3 PLAYER ROOM</h3>
+  <div class="row"><button id="create" class="btn">CREATE ROOM</button><input id="roomInput" maxlength="6" placeholder="ROOM CODE"><button id="join" class="btn">JOIN ROOM</button></div>
+  <div id="status" style="text-align:center;font-weight:bold;margin:10px;color:var(--green)"></div>
+  <div id="roomInfo" style="display:none;text-align:center">
+    <div>ROOM CODE</div><div id="roomCode" class="code"></div>
+    <div id="players"></div>
+    <button id="startRace" class="btn" style="display:none">START 2,000m RACE</button>
+    <button id="leave" class="btn minor">LEAVE ROOM</button>
+  </div>
+</div>
+</section>
+
+<section id="gamePanel" class="panel">
+<div class="hud">
+ <div class="hudBox"><small>DISTANCE</small><div class="big"><span id="distance">0</span> / 2000m</div></div>
+ <div class="hudBox powerBox"><div style="display:flex;justify-content:space-between;font-size:12px;font-weight:bold"><span>⚡ SPECIAL</span><span id="powerText">0%</span></div><div class="meter"><div id="powerBar"></div></div></div>
+ <div class="hudBox"><small>SPEED</small><div id="speedText" class="big">100%</div><div id="slowText" style="font-size:12px"></div></div>
+</div>
+<div id="raceboard" class="raceboard"></div>
+<div class="canvasWrap"><canvas id="game" width="900" height="430"></canvas><div id="overlay"><div id="overlayText"></div></div></div>
+<div class="controls"><button id="up" class="btn ctrl">▲ UP</button><button id="power" class="btn ctrl" disabled>⚡ SPECIAL</button><button id="down" class="btn ctrl">▼ DOWN</button></div>
+<div class="row" style="margin-top:10px"><button id="backLobby" class="btn minor">LEAVE RACE</button></div>
+</section>
+
+<section id="resultsPanel" class="resultsPanel">
+  <h2>🏆 RACE COMPLETE</h2>
+  <div id="resultSummary" class="resultHero"></div>
+  <div id="nameEntry">
+    <div style="text-align:center">Enter your name to save this race to the HEALTHIA leaderboard.</div>
+    <div class="nameRow">
+      <input id="playerName" maxlength="20" placeholder="Player name" autocomplete="nickname">
+      <button id="saveResult" class="btn">SAVE RESULT</button>
+    </div>
+    <div id="saveStatus" class="smallnote"></div>
+  </div>
+  <h3>THIS RACE</h3>
+  <div id="leaderboard" class="lb"><div class="smallnote" style="padding:14px">Loading leaderboard…</div></div>
+  <div class="smallnote">Ranked by wins, then best finish time.</div>
+  <div class="row" style="margin-top:14px">
+    <button id="raceAgain" class="btn">RACE AGAIN</button>
+    <button id="resultsLeave" class="btn minor">LEAVE ROOM</button>
+  </div>
+</section>
+</div>
+
+<script>
+(()=>{
+const SUPA_URL='https://adakwbhxiuatjvphutgo.supabase.co';
+const SUPA_KEY='sb_publishable_-9XXEFzLZ-BEdmDUFSpzCQ_-m8W0Wfh';
+const sb=window.supabase?window.supabase.createClient(SUPA_URL,SUPA_KEY):null;
+const $=id=>document.getElementById(id), C=$('game'),x=C.getContext('2d');
+let hero='Summy',room='',chan=null,isHost=false,playerId=(crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).slice(2));
+let known={},remote={},run=false,raf=0,last=0,frame=0,distance=0,vy=0,y=215,charge=0,powerFrames=0,slowUntil=0,nextSpawn=900,nextStar=1000,star=null,safeUntil=0,trash=[],particles=[],finished=false,finishPlace=0,finishOrder=[],lastNet=0,raceStartedAt=0,finishTime=0,resultSaved=false,raceSaveKey='',gameMode='multi',singleHits=0;
+const H={Summy:{suit:'#f4f7f6',skin:'#8a5b43',hair:'#171519'},Sadie:{suit:'#279d57',skin:'#8a5b43',hair:'#c69b4a'},Vee:{suit:'#f4f7f6',skin:'#a66f51',hair:'#171519'}};
+function roomCode(){return Math.random().toString(36).slice(2,8).toUpperCase()}
+function broadcast(ev,p={}){if(chan)chan.send({type:'broadcast',event:ev,payload:p})}
+function roster(){
+ if(!chan)return; let arr=[]; const s=chan.presenceState();
+ Object.values(s).forEach(v=>v.forEach(p=>{if(p&&p.id){known[p.id]=p;arr.push(p)}}));
+ const ids=new Set(arr.map(p=>p.id)); Object.keys(known).forEach(id=>{if(!ids.has(id)&&id!==playerId)delete known[id]});
+ $('players').innerHTML=arr.map((p,i)=>`<div><b>PLAYER ${i+1}</b> — SUPER ${String(p.hero||'Summy').toUpperCase()} ${p.id===playerId?'(YOU)':''}</div>`).join('');
+ if(isHost){$('startRace').style.display='inline-block';$('startRace').disabled=arr.length<1||arr.length>3}
+ drawRaceboard();
+}
+async function leaveRoom(){
+ run=false;cancelAnimationFrame(raf);
+ if(chan){await sb.removeChannel(chan);chan=null}
+ room='';isHost=false;known={};remote={};document.body.classList.remove('game-active');$('roomInfo').style.display='none';$('status').textContent='';$('gamePanel').style.display='none';$('resultsPanel').style.display='none';$('lobby').style.display='block';
+}
+async function connect(c,host){
+ if(!sb){$('status').textContent='MULTIPLAYER SERVICE COULD NOT LOAD';return}
+ if(chan)await sb.removeChannel(chan);
+ room=c;isHost=host;known={};remote={};$('status').textContent='CONNECTING…';
+ chan=sb.channel('healthia-sky-race-'+room,{config:{broadcast:{self:false},presence:{key:playerId}}});
+ chan.on('presence',{event:'sync'},()=>{
+   roster();
+   let count=Object.values(chan.presenceState()).reduce((n,v)=>n+v.length,0);
+   if(count>3){$('status').textContent='ROOM FULL — MAXIMUM 3 PLAYERS';setTimeout(leaveRoom,900)}
+ }).on('presence',{event:'join'},roster).on('presence',{event:'leave'},roster)
+ .on('broadcast',{event:'state'},({payload})=>{
+   if(payload&&payload.id!==playerId){
+     const prev=remote[payload.id];
+     if(prev){
+       prev.hero=payload.hero||prev.hero;
+       prev.targetDistance=Number(payload.distance||0);
+       prev.targetY=Number(payload.y||215);
+       prev.slow=payload.slow;prev.finished=payload.finished;prev.place=payload.place;prev.t=payload.t;
+       if(!Number.isFinite(prev.displayDistance))prev.displayDistance=Number(prev.distance||payload.distance||0);
+       if(!Number.isFinite(prev.displayY))prev.displayY=Number(prev.y||payload.y||215);
+       prev.distance=Number(payload.distance||0);prev.y=Number(payload.y||215);
+     }else{
+       remote[payload.id]={...payload,targetDistance:Number(payload.distance||0),targetY:Number(payload.y||215),displayDistance:Number(payload.distance||0),displayY:Number(payload.y||215)};
+     }
+     drawRaceboard()
+   }
+ })
+ .on('broadcast',{event:'start'},({payload})=>startGame(payload&&payload.seed||Date.now()))
+ .on('broadcast',{event:'finish'},({payload})=>{if(payload&&!finishOrder.includes(payload.id)){finishOrder.push(payload.id); if(remote[payload.id])remote[payload.id].finished=true;drawRaceboard()}})
+ .on('broadcast',{event:'room_full'},({payload})=>{if(payload&&payload.id===playerId){$('status').textContent='ROOM FULL'}})
+ await chan.subscribe(async status=>{
+   if(status==='SUBSCRIBED'){
+     const count=Object.values(chan.presenceState()).reduce((n,v)=>n+v.length,0);
+     if(count>=3&&!host){$('status').textContent='ROOM MAY BE FULL — CHECKING…'}
+     await chan.track({id:playerId,hero,isHost:host});
+     $('roomCode').textContent=room;$('roomInfo').style.display='block';$('status').textContent='CONNECTED';roster();
+   }
+ });
+}
+$('single').onclick=()=>{gameMode='single';startSinglePlayer()};
+$('online').onclick=()=>{gameMode='multi';$('roomBox').style.display='block'};
+$('create').onclick=()=>connect(roomCode(),true);
+$('join').onclick=()=>{let c=$('roomInput').value.trim().toUpperCase();if(c.length<4){$('status').textContent='ENTER A ROOM CODE';return}connect(c,false)};
+$('leave').onclick=leaveRoom;
+document.querySelectorAll('[data-hero]').forEach(el=>el.onclick=async()=>{
+ hero=el.dataset.hero;document.querySelectorAll('[data-hero]').forEach(q=>q.classList.toggle('sel',q===el));
+ if(chan){await chan.track({id:playerId,hero,isHost});roster()}
+});
+$('startRace').onclick=()=>{
+ if(!isHost)return; const count=Object.values(chan.presenceState()).reduce((n,v)=>n+v.length,0);
+ if(count>3){$('status').textContent='MAXIMUM 3 PLAYERS';return}
+ const seed=Date.now(); broadcast('start',{seed});startGame(seed);
+};
+
+function startSinglePlayer(){
+ $('saveResult').style.display=''; $('nameEntry').style.display='';
+ $('lobby').style.display='none';$('gamePanel').style.display='block';document.body.classList.add('game-active');$('resultsPanel').style.display='none';$('overlay').style.display='none';
+ run=true;finished=false;distance=0;y=215;vy=0;charge=0;powerFrames=0;slowUntil=0;nextSpawn=1100;nextStar=1000;star=null;safeUntil=0;trash=[];particles=[];frame=0;remote={};singleHits=0;resultSaved=false;$('saveStatus').textContent='';$('saveResult').disabled=false;
+ raceStartedAt=performance.now();last=performance.now();updateHUD();drawRaceboard();cancelAnimationFrame(raf);raf=requestAnimationFrame(loop);
+}
+function startGame(seed){
+ gameMode='multi';
+ $('lobby').style.display='none';$('gamePanel').style.display='block';document.body.classList.add('game-active');$('overlay').style.display='none';
+ run=true;finished=false;finishPlace=0;finishOrder=[];distance=0;y=215;vy=0;charge=0;powerFrames=0;slowUntil=0;nextSpawn=950;nextStar=1000;star=null;safeUntil=0;trash=[];particles=[];frame=0;remote={};raceStartedAt=performance.now();finishTime=0;resultSaved=false;raceSaveKey=room+'-'+raceStartedAt+'-'+playerId;$('resultsPanel').style.display='none';$('saveStatus').textContent='';$('saveResult').disabled=false;
+ last=performance.now();updateHUD();drawRaceboard();cancelAnimationFrame(raf);raf=requestAnimationFrame(loop);
+}
+function move(n){if(run&&!finished)vy=Math.max(-7,Math.min(7,vy+n*2.4))}
+
+// Smooth press-and-hold steering for phones/tablets.
+// A tap still gives one movement push; holding continuously steers.
+let steerTimer=null;
+function stopSteer(){
+ if(steerTimer){clearInterval(steerTimer);steerTimer=null}
+}
+function startSteer(dir,e){
+ if(e){e.preventDefault();try{e.currentTarget.setPointerCapture(e.pointerId)}catch(_){}}
+ stopSteer();
+ move(dir);
+ steerTimer=setInterval(()=>move(dir),55);
+}
+['pointerup','pointercancel','lostpointercapture'].forEach(ev=>{
+ $('up').addEventListener(ev,stopSteer);
+ $('down').addEventListener(ev,stopSteer);
+});
+$('up').addEventListener('pointerdown',e=>startSteer(-1,e),{passive:false});
+$('down').addEventListener('pointerdown',e=>startSteer(1,e),{passive:false});
+window.addEventListener('pointerup',stopSteer);
+window.addEventListener('blur',stopSteer);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stopSteer()});
+
+$('power').onclick=usePower;
+function usePower(){
+ if(charge<100||powerFrames||!run||finished)return;
+ charge=0;powerFrames=180;
+ if(hero==='Summy'){trash.forEach(o=>{o.x+=180;o.vy+=(o.y<y?-8:8)});burst(190,y,35)}
+ if(hero==='Sadie'){burst(160,y,28)}
+ if(hero==='Vee'){burst(115,y,24)}
+ updateHUD();
+}
+const SKY_KEYS=new Set(['ArrowUp','ArrowDown','Space','KeyW','KeyS']);
+window.addEventListener('keydown',e=>{
+ if($('gamePanel').style.display==='none'||!SKY_KEYS.has(e.code))return;
+ e.preventDefault();
+ e.stopPropagation();
+ if(e.stopImmediatePropagation)e.stopImmediatePropagation();
+ if(e.repeat && e.code==='Space')return;
+ if(e.code==='ArrowUp'||e.code==='KeyW')move(-1);
+ if(e.code==='ArrowDown'||e.code==='KeyS')move(1);
+ if(e.code==='Space')usePower();
+},{capture:true,passive:false});
+
+window.addEventListener('keyup',e=>{
+ if($('gamePanel').style.display==='none'||!SKY_KEYS.has(e.code))return;
+ e.preventDefault();
+ e.stopPropagation();
+},{capture:true,passive:false});
+
+document.addEventListener('selectstart',e=>{
+ if($('gamePanel').style.display!=='none')e.preventDefault();
+});
+document.addEventListener('dragstart',e=>{
+ if($('gamePanel').style.display!=='none')e.preventDefault();
+});
+$('backLobby').onclick=leaveRoom;
+function spawn(){
+ const types=['bag','bottle','tire','can','smog'],t=types[Math.floor(Math.random()*types.length)];
+ trash.push({x:940,y:45+Math.random()*340,r:t==='smog'?40:t==='tire'?33:26,t,vy:(Math.random()-.5)*.65,a:Math.random()*6.28,passed:false,hit:false});
+}
+function burst(px,py,n=15){for(let i=0;i<n;i++)particles.push({x:px,y:py,vx:(Math.random()-.5)*12,vy:(Math.random()-.5)*12,l:32})}
+function collision(o){return Math.hypot(145-o.x,y-o.y)<23+o.r*.72}
+function hitTrash(o){
+ if(o.hit)return;o.hit=true;
+ if(powerFrames&&hero==='Sadie'){burst(o.x,o.y,28);o.x=-200;return}
+ if(powerFrames&&hero==='Summy'){o.x+=120;o.vy+=(o.y<y?-7:7);return}
+ if(powerFrames&&hero==='Vee')return;
+ if(gameMode==='single'){
+   singleHits++;burst(o.x,o.y,12);o.x=-200;
+   if(singleHits>=3){endSinglePlayer();return}
+   slowUntil=distance+20;updateHUD();return;
+ }
+ slowUntil=distance+20; burst(o.x,o.y,8); updateHUD();
+}
+function finish(){
+ if(gameMode==='single')return;
+ if(finished)return;finished=true;distance=2000;
+ finishTime=Math.max(.01,(performance.now()-raceStartedAt)/1000);
+ finishPlace=finishOrder.length+1;finishOrder.push(playerId);
+ broadcast('finish',{id:playerId,hero,place:finishPlace,finishTime});
+ broadcastState(true);updateHUD();drawRaceboard();
+ $('overlay').style.display='flex';$('overlayText').innerHTML=`<div style="font-size:34px;font-weight:900">${finishPlace===1?'🏆 1ST PLACE!':finishPlace===2?'🥈 2ND PLACE!':'🥉 3RD PLACE!'}</div><div style="font-size:22px">YOU FINISHED 2,000m</div><div style="margin-top:8px">Time: ${formatTime(finishTime)}</div><div style="margin-top:8px">Leaderboard opening…</div>`;
+ setTimeout(showResults,900);
+}
+function broadcastState(force=false){
+ const now=performance.now();if(!force&&now-lastNet<80)return;lastNet=now;
+ broadcast('state',{id:playerId,hero,distance:Math.floor(distance),y,slow:distance<slowUntil,finished,place:finishPlace,t:Date.now()});
+}
+function updateHUD(){
+ $('distance').textContent=Math.floor(distance); document.querySelector('#distance').parentElement.innerHTML=`<span id="distance">${Math.floor(distance)}</span>${gameMode==='multi'?' / 2000m':'m'}`;
+ const pv=powerFrames?Math.max(0,powerFrames/180*100):charge;$('powerBar').style.width=pv+'%';$('powerText').textContent=powerFrames?'ACTIVE '+Math.ceil(pv)+'%':Math.floor(charge)+'%';
+ $('power').disabled=charge<100||powerFrames||finished;
+ const slowed=distance<slowUntil;$('speedText').textContent=slowed?'50%':'100%';$('speedText').className='big '+(slowed?'slow':'ready');
+ $('slowText').textContent=slowed?'SLOWED — '+Math.max(0,Math.ceil(slowUntil-distance))+'m until full speed':'FULL SPEED';
+}
+function drawRaceboard(){
+ if(gameMode==='single'){$('raceboard').innerHTML=`<div class="racer me"><b>SUPER ${hero.toUpperCase()}</b><br>${Math.floor(distance)}m · HITS ${singleHits}/3</div>`;return}
+ let list=[{id:playerId,hero,distance,slow:distance<slowUntil,finished,place:finishPlace},...Object.values(remote)];
+ const seen=new Set();list=list.filter(p=>p&&p.id&&!seen.has(p.id)&&seen.add(p.id)).slice(0,3);
+ list.sort((a,b)=>(b.distance||0)-(a.distance||0));
+ $('raceboard').innerHTML=list.map((p,i)=>`<div class="racer ${p.id===playerId?'me':''}"><b>${i+1}. SUPER ${String(p.hero||'Summy').toUpperCase()}</b><br>${Math.min(2000,Math.floor(p.distance||0))}m ${p.finished?'<span class="finish">FINISHED</span>':p.slow?'<span class="slow">50% SPEED</span>':''}</div>`).join('');
+}
+function update(dt){
+ frame++;
+ let slowed=distance<slowUntil;
+ // Race distance is derived from actual forward world speed, not elapsed time alone.
+ // Restored the faster original Sky Rescue pace: about 27 race-meters/sec at full speed.
+ let speedFactor=(slowed?.5:1);
+ // All heroes have identical forward speed. Vee's power changes collision/visibility only.
+ const worldPixelsPerSecond=6.25*60*speedFactor;
+ const metersPerPixel=18/(4.15*60);
+ distance+=worldPixelsPerSecond*(dt/1000)*metersPerPixel;
+ // The finish is physical: the line reaches the hero when the course distance reaches 2000m.
+ if(gameMode==='multi' && distance>=2000){distance=2000;finish();return}
+ y=Math.max(28,Math.min(402,y+vy));vy*=.96;
+ if(powerFrames){powerFrames--;if(powerFrames===0)updateHUD()}
+ if(!star && distance>=nextStar && (gameMode==='single' || nextStar<2000)){star={x:930,y:70+Math.random()*290,r:27};nextStar+=1000}
+ if(star){star.x-=7.5;if(Math.hypot(145-star.x,y-star.y)<23+star.r){trash.forEach(o=>burst(o.x,o.y,5));trash=[];safeUntil=distance+25;burst(star.x,star.y,40);star=null}else if(star.x<-60)star=null}
+ nextSpawn-=dt;
+ let zone=Math.floor(distance/500),interval=Math.max(300,1300-zone*165);
+ if(nextSpawn<=0&&distance>=safeUntil){spawn();if(zone>0&&Math.random()<Math.min(zone*.09,.38))spawn();nextSpawn=interval+Math.random()*300}
+ let worldSpeed=6.25*speedFactor;
+ trash.forEach(o=>{
+   o.x-=worldSpeed;o.y+=o.vy+Math.sin(frame*.025+o.a)*.24;if(o.y<28||o.y>402)o.vy*=-1;
+   if(!o.passed&&o.x+o.r<145){o.passed=true;if(!powerFrames)charge=Math.min(100,charge+10)}
+   if(collision(o))hitTrash(o);
+ });
+ trash=trash.filter(o=>o.x>-100);
+ particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.12;p.l--});particles=particles.filter(p=>p.l>0);
+ updateHUD();if(gameMode==='multi')broadcastState();if(frame%8===0)drawRaceboard();
+}
+function bg(){
+ let g=x.createLinearGradient(0,0,0,430);g.addColorStop(0,'#55bae6');g.addColorStop(1,'#c8ebef');x.fillStyle=g;x.fillRect(0,0,900,430);
+ x.fillStyle='#fff9';for(let i=0;i<6;i++){let q=(i*190-frame*.42)%1100-100,yy=55+(i%3)*95;x.beginPath();x.arc(q,yy,27,0,7);x.arc(q+34,yy-8,36,0,7);x.arc(q+68,yy,24,0,7);x.fill()}
+}
+function obstacle(o){
+ x.save();x.translate(o.x,o.y);x.rotate(o.a+frame*.01);
+ if(o.t==='tire'){x.strokeStyle='#202326';x.lineWidth=15;x.beginPath();x.arc(0,0,26,0,7);x.stroke()}
+ else if(o.t==='smog'){x.fillStyle='#555d63bb';for(let i=-2;i<3;i++){x.beginPath();x.arc(i*14,Math.sin(i)*9,23,0,7);x.fill()}}
+ else{x.fillStyle=o.t==='bottle'?'#65b9c5':o.t==='can'?'#aab5b8':'#293136';x.fillRect(-18,-27,36,54)}
+ x.restore();
+}
+function drawStar(){
+ if(!star)return;x.save();x.translate(star.x,star.y);x.rotate(frame*.04);x.shadowBlur=30;x.shadowColor='#fff39a';x.fillStyle='#fff49b';x.beginPath();
+ for(let i=0;i<10;i++){let a=-Math.PI/2+i*Math.PI/5,r=i%2?11:28;x.lineTo(Math.cos(a)*r,Math.sin(a)*r)}x.closePath();x.fill();x.restore();
+}
+function heroDraw(px,py,name,alpha=1,label=''){
+ const q=H[name]||H.Summy;x.save();x.globalAlpha=alpha;x.translate(px,py);
+ // flying legs and gold boots
+ x.strokeStyle=q.suit;x.lineWidth=13;x.lineCap='round';x.beginPath();x.moveTo(-18,13);x.lineTo(-48,30);x.lineTo(-76,27);x.moveTo(-6,16);x.lineTo(-36,43);x.lineTo(-64,47);x.stroke();
+ x.strokeStyle='#d6ad3d';x.lineWidth=10;x.beginPath();x.moveTo(-68,27);x.lineTo(-82,26);x.moveTo(-58,47);x.lineTo(-74,49);x.stroke();
+ // torso
+ x.fillStyle=q.suit;x.beginPath();x.roundRect(-31,-23,61,43,15);x.fill();
+ // green suit panels
+ x.fillStyle='#249657';if(name!=='Sadie'){x.beginPath();x.roundRect(-28,-19,18,35,8);x.fill()}else{x.fillRect(-28,-18,55,34)}
+ // gold belt
+ x.fillStyle='#d6ad3d';x.fillRect(-27,10,51,5);
+ // arms forward
+ x.strokeStyle=q.skin;x.lineWidth=9;x.beginPath();x.moveTo(14,-9);x.lineTo(47,-4);x.moveTo(12,8);x.lineTo(43,18);x.stroke();
+ // head
+ x.fillStyle=q.skin;x.beginPath();x.arc(29,-27,17,0,7);x.fill();
+ // hair/loc silhouette
+ x.strokeStyle=q.hair;x.lineWidth=6;
+ if(name==='Vee'){x.beginPath();x.arc(23,-46,11,0,7);x.stroke();for(let i=-8;i<12;i+=5){x.beginPath();x.moveTo(25+i,-42);x.lineTo(21+i,-12);x.stroke()}}
+ else {for(let i=-10;i<14;i+=5){x.beginPath();x.moveTo(25+i,-43);x.lineTo(20+i,-9);x.stroke()}}
+ // bows
+ if(name==='Sadie'||name==='Vee'){x.fillStyle=name==='Sadie'?'#e9be42':'#fff';x.beginPath();x.moveTo(27,-48);x.lineTo(11,-58);x.lineTo(24,-56);x.lineTo(39,-60);x.lineTo(34,-47);x.closePath();x.fill()}
+ // green mask
+ x.fillStyle='#248c54';x.fillRect(20,-31,19,7);
+ // Summy glasses
+ if(name==='Summy'){x.strokeStyle='#151515';x.lineWidth=2;x.strokeRect(19,-34,9,7);x.strokeRect(31,-34,9,7);x.beginPath();x.moveTo(28,-31);x.lineTo(31,-31);x.stroke()}
+ // chest emblem
+ x.fillStyle='#fff';x.beginPath();x.arc(-2,-4,10,0,7);x.fill();x.strokeStyle='#238d54';x.lineWidth=2;x.stroke();
+ x.fillStyle='#238d54';x.font='bold 11px Arial';x.textAlign='center';x.textBaseline='middle';x.fillText(name==='Summy'?'🌎':'♻',-2,-3);
+ // active power visuals
+ if(powerFrames&&name===hero&&alpha===1){
+   if(name==='Summy'){x.strokeStyle='#dffcff';x.lineWidth=4;for(let r=42;r<72;r+=13){x.beginPath();x.arc(-3,0,r,-1.1,1.1);x.stroke()}}
+   if(name==='Sadie'){x.strokeStyle='#9affb9';x.lineWidth=6;x.beginPath();x.arc(0,0,52,0,7);x.stroke();x.fillStyle='#fff';x.font='bold 14px Arial';x.fillText('SMASH!',0,-68)}
+   if(name==='Vee'){x.globalAlpha=.28;x.strokeStyle='#dffcff';x.lineWidth=3;x.beginPath();x.arc(0,0,52,0,7);x.stroke();x.globalAlpha=1}
+ }
+ if(label){x.fillStyle='#102b32';x.font='bold 12px Arial';x.textAlign='center';x.fillText(label,0,-72)}x.restore();
+}
+function drawFinishLine(){
+ const remaining=2000-distance;
+ if(remaining>100)return;
+ // Over the last 100m, the physical finish line travels from the far right to the player's flight position.
+ const fx=145+(remaining/100)*(900-145);
+ x.save();
+ // checkered vertical stripe
+ const top=48,bottom=365,cell=18;
+ for(let yy=top;yy<bottom;yy+=cell){
+   for(let col=0;col<2;col++){
+     x.fillStyle=((Math.floor((yy-top)/cell)+col)%2===0)?'#ffffff':'#172126';
+     x.fillRect(fx+col*cell,yy,cell,cell);
+   }
+ }
+ x.strokeStyle='#172126';x.lineWidth=3;x.strokeRect(fx,top,cell*2,bottom-top);
+ x.fillStyle='#ffffff';x.strokeStyle='#172126';x.lineWidth=4;
+ x.beginPath();x.roundRect(fx-92,18,220,42,10);x.fill();x.stroke();
+ x.fillStyle='#118a55';x.font='900 20px Arial';x.textAlign='center';x.fillText('HEALTHIA FINISH',fx+18,46);
+ x.fillStyle='#102b32';x.font='bold 12px Arial';x.fillText(Math.max(0,Math.ceil(remaining))+'m',fx+18,378);
+ x.restore();
+}
+
+
+function endSinglePlayer(){
+ if(finished)return;finished=true;run=false;cancelAnimationFrame(raf);
+ $('overlay').style.display='flex';
+ $('overlayText').innerHTML=`<div style="font-size:34px;font-weight:900">RUN COMPLETE</div><div style="font-size:22px">${Math.floor(distance)}m</div><div style="margin-top:8px">Opening Global Top 10…</div>`;
+ setTimeout(showSingleResults,700);
+}
+async function showSingleResults(){
+ $('overlay').style.display='none';document.body.classList.remove('game-active');$('gamePanel').style.display='none';$('resultsPanel').style.display='block';
+ $('resultSummary').innerHTML=`SUPER ${safeText(hero).toUpperCase()} · ${Math.floor(distance)}m`;
+ $('resultsPanel').querySelector('h2').textContent='🌎 SINGLE PLAYER RUN COMPLETE';
+ $('resultsPanel').querySelector('h3').textContent='GLOBAL TOP 10 DISTANCE';
+ $('saveResult').textContent='SAVE SCORE';$('saveResult').disabled=false;
+ $('raceAgain').textContent='PLAY AGAIN';
+ $('nameEntry').style.display='block';
+ $('saveStatus').textContent='';
+ await loadSingleLeaderboard();
+}
+async function loadSingleLeaderboard(){
+ const box=$('leaderboard');box.innerHTML='<div class="smallnote" style="padding:14px">Loading leaderboard…</div>';
+ if(!sb){box.innerHTML='<div class="smallnote" style="padding:14px">Leaderboard service unavailable.</div>';return}
+ const {data,error}=await sb.from('healthia_single_scores').select('player_name,hero,distance,created_at').order('distance',{ascending:false}).limit(10);
+ if(error){box.innerHTML='<div class="smallnote" style="padding:14px">Could not load leaderboard: '+safeText(error.message)+'</div>';return}
+ if(!(data||[]).length){box.innerHTML='<div class="smallnote" style="padding:14px">No saved scores yet. Be the first!</div>';return}
+ box.innerHTML='<div class="lbrow lbhead"><span>RANK</span><span>PLAYER</span><span>DISTANCE</span><span>HERO</span></div>'+
+ data.map((q,i)=>`<div class="lbrow"><b>#${i+1}</b><b>${safeText(q.player_name)}</b><b>${Number(q.distance||0)}m</b><span>${safeText(q.hero)}</span></div>`).join('');
+}
+async function saveSingleScore(){
+ if(resultSaved)return;
+ const name=$('playerName').value.trim().slice(0,20);
+ if(!name){$('saveStatus').textContent='Enter your name first.';$('playerName').focus();return}
+ $('saveResult').disabled=true;$('saveStatus').textContent='Saving…';
+ const {error}=await sb.from('healthia_single_scores').insert({player_name:name,hero,distance:Math.floor(distance)});
+ if(error){$('saveResult').disabled=false;$('saveStatus').textContent='Could not save: '+error.message;return}
+ resultSaved=true;$('saveStatus').textContent='Saved! Your score is now on the shared HEALTHIA leaderboard.';
+ await loadSingleLeaderboard();
+}
+
+function formatTime(sec){
+ sec=Number(sec)||0;const m=Math.floor(sec/60),ss=(sec-m*60).toFixed(2).padStart(5,'0');
+ return m?`${m}:${ss}`:`${ss}s`;
+}
+function safeText(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+async function showResults(){
+ gameMode='multi';
+ resultSaved=false;
+ $('overlay').style.display='none';
+ $('gamePanel').style.display='none';
+ $('resultsPanel').style.display='block';
+ $('resultsPanel').querySelector('h2').textContent='🏁 RACE RESULTS';
+ $('resultsPanel').querySelector('h3').textContent='THIS RACE';
+ $('nameEntry').style.display='none';
+ $('saveResult').style.display='none';
+ $('saveStatus').textContent='';
+ $('raceAgain').textContent='RACE AGAIN';
+
+ const racers=[
+   {id:playerId,hero,place:finishPlace,time:finishTime},
+   ...Object.values(remote).filter(p=>p.finished).map(p=>({
+     id:p.id,hero:p.hero,place:Number(p.place||0),time:Number(p.finishTime||p.time||0)
+   }))
+ ].filter(p=>p.place>0).sort((a,b)=>a.place-b.place);
+
+ const medals=['🥇','🥈','🥉'];
+ const rows=racers.map((p,i)=>{
+   const who=p.id===playerId?'YOU':('PLAYER '+(i+1));
+   const tm=p.time>0?' · '+formatTime(p.time):'';
+   return `<div style="padding:8px 0;font-weight:800">${medals[p.place-1]||'🏁'} ${p.place}${p.place===1?'ST':p.place===2?'ND':p.place===3?'RD':'TH'} — ${who} · SUPER ${safeText(p.hero).toUpperCase()}${tm}</div>`;
+ }).join('');
+
+ $('resultSummary').innerHTML=rows||`${finishPlace===1?'🥇 1ST PLACE':finishPlace===2?'🥈 2ND PLACE':'🥉 3RD PLACE'} · SUPER ${safeText(hero).toUpperCase()} · ${formatTime(finishTime)}`;
+}
+async function loadLeaderboard(){
+ const box=$('leaderboard');box.innerHTML='<div class="smallnote" style="padding:14px">Loading leaderboard…</div>';
+ if(!sb){box.innerHTML='<div class="smallnote" style="padding:14px">Leaderboard service unavailable.</div>';return}
+ const {data,error}=await sb.from('healthia_race_results').select('player_name,hero,place,finish_time,created_at').order('created_at',{ascending:false}).limit(500);
+ if(error){box.innerHTML='<div class="smallnote" style="padding:14px">Could not load leaderboard: '+safeText(error.message)+'</div>';return}
+ const stats={};
+ (data||[]).forEach(r=>{
+   const key=(r.player_name||'Player').trim().toLowerCase();
+   if(!stats[key])stats[key]={name:(r.player_name||'Player').trim(),wins:0,races:0,best:Infinity,hero:r.hero||''};
+   const q=stats[key];q.races++;if(Number(r.place)===1)q.wins++;
+   const ft=Number(r.finish_time);if(ft>0&&ft<q.best)q.best=ft;
+ });
+ const rows=Object.values(stats).sort((a,b)=>b.wins-a.wins || a.best-b.best || b.races-a.races).slice(0,10);
+ if(!rows.length){box.innerHTML='<div class="smallnote" style="padding:14px">No saved races yet. Be the first!</div>';return}
+ box.innerHTML='<div class="lbrow lbhead"><span>RANK</span><span>PLAYER</span><span>WINS</span><span>BEST</span></div>'+
+ rows.map((q,i)=>`<div class="lbrow"><b>#${i+1}</b><span><b>${safeText(q.name)}</b><br><small>Super ${safeText(q.hero)}</small></span><b>${q.wins}</b><span>${isFinite(q.best)?formatTime(q.best):'—'}</span></div>`).join('');
+}
+async function saveRaceResult(){
+ if(resultSaved){$('saveStatus').textContent='This race result is already saved.';return}
+ const name=$('playerName').value.trim().slice(0,20);
+ if(!name){$('saveStatus').textContent='Enter your name first.';$('playerName').focus();return}
+ if(!sb){$('saveStatus').textContent='Leaderboard service unavailable.';return}
+ const place=Number(finishPlace);
+ const time=Number(Number(finishTime).toFixed(2));
+ if(!(place>=1&&place<=3)||!(time>0)){
+   $('saveStatus').textContent='Race result is not ready to save yet.';
+   $('saveResult').disabled=false;
+   return;
+ }
+ $('saveResult').disabled=true;$('saveStatus').textContent='Saving…';
+ try{
+   const {error}=await sb.from('healthia_race_results').insert({
+     player_name:name,hero,place,finish_time:time,room_code:room
+   });
+   if(error)throw error;
+   resultSaved=true;
+   $('saveResult').disabled=true;
+   $('saveStatus').textContent='Saved! '+formatTime(time)+' is now on the HEALTHIA multiplayer leaderboard.';
+   await loadLeaderboard();
+ }catch(err){
+   resultSaved=false;
+   $('saveResult').disabled=false;
+   $('saveStatus').textContent='Could not save: '+(err&&err.message?err.message:'Please try again.');
+ }
+}
+$('saveResult').onclick=()=>gameMode==='single'?saveSingleScore():saveRaceResult;
+$('resultsLeave').onclick=()=>{if(gameMode==='single'){run=false;cancelAnimationFrame(raf);$('resultsPanel').style.display='none';$('lobby').style.display='block'}else leaveRoom()};
+$('raceAgain').onclick=()=>{
+ if(gameMode==='single'){startSinglePlayer();return}
+ if(isHost){
+   resultSaved=false;$('saveResult').disabled=false;$('saveStatus').textContent='';
+   const seed=Date.now();broadcast('start',{seed});startGame(seed)
+ }
+ else{$('saveStatus').textContent='Waiting for the host to start the next race…'}
+};
+
+function drawProgress(){
+ if(gameMode==='single'){x.fillStyle='#1238';x.fillRect(20,390,860,22);x.fillStyle='#fff';x.font='bold 12px Arial';x.fillText('ENDLESS RUN',24,405);x.fillText('NEXT STAR '+nextStar+'m',735,405);return}
+ x.fillStyle='#1238';x.fillRect(20,390,860,22);x.fillStyle='#fff';x.font='bold 11px Arial';x.fillText('0m',22,386);x.fillText('2000m',842,386);
+ let list=[{id:playerId,hero,distance},...Object.values(remote)].slice(0,3);list.forEach((p,i)=>{let vd=p.id===playerId?distance:(Number.isFinite(p.displayDistance)?p.displayDistance:(p.distance||0));let px=25+Math.min(1,vd/2000)*840;x.fillStyle=['#fff','#ffd54a','#5cf0a2'][i%3];x.beginPath();x.arc(px,401,5,0,7);x.fill()})
+}
+function smoothRemotePlayers(){
+ Object.values(remote).forEach(p=>{
+   const td=Number.isFinite(p.targetDistance)?p.targetDistance:Number(p.distance||0);
+   const ty=Number.isFinite(p.targetY)?p.targetY:Number(p.y||215);
+   if(!Number.isFinite(p.displayDistance))p.displayDistance=td;
+   if(!Number.isFinite(p.displayY))p.displayY=ty;
+   // Ease toward the newest network sample. Large corrections converge faster without snapping.
+   const dd=td-p.displayDistance;
+   p.displayDistance += dd*(Math.abs(dd)>55?.32:.18);
+   p.displayY += (ty-p.displayY)*.22;
+ }
+)}
+function draw(){
+ smoothRemotePlayers();
+ bg();trash.forEach(obstacle);drawStar();if(gameMode==='multi')drawFinishLine();particles.forEach(p=>{x.globalAlpha=p.l/32;x.fillStyle='#fff6a0';x.fillRect(p.x,p.y,5,5)});x.globalAlpha=1;
+ Object.values(remote).forEach((p,i)=>{
+   if(p.finished)return;
+   const visualDistance=Number.isFinite(p.displayDistance)?p.displayDistance:Number(p.distance||0);
+   const visualY=Number.isFinite(p.displayY)?p.displayY:Number(p.y||215);
+   const delta=visualDistance-distance;
+   // Small grace behind the local racer prevents flicker at the visibility boundary.
+   if(delta < -8 || delta > 100)return;
+   const clamped=Math.max(0,Math.min(90,delta));
+   const screenX=175 + (clamped/90)*650;
+   heroDraw(screenX,visualY,p.hero,.65,'P'+(i+2));
+ });
+ if(!finished)heroDraw(145,y,hero,1,'YOU');drawProgress();
+ if(distance<safeUntil){x.fillStyle='#fff4a0';x.font='bold 15px Arial';x.fillText('⭐ CLEAN AIR '+Math.ceil(safeUntil-distance)+'m',720,28)}
+}
+function loop(t){if(!run)return;let dt=Math.min(32,t-last);last=t;if(!finished)update(dt);else broadcastState();draw();raf=requestAnimationFrame(loop)}
+draw();
+})();
+</script>
+</body>
+</html>
