@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>HEALTHIA — Race the Rain</title>
+<style>
+:root{
+  --green:#173f2a; --green2:#245b3a; --sky:#bde5f5; --grass:#8fc36c;
+  --dry:#ad784c; --wet:#63a8d2; --tree:#72a65a; --white:#fff;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:Arial,Helvetica,sans-serif;background:#102b1d;color:#fff}
+body{padding:14px}
+.game{width:min(900px,100%);margin:0 auto}
+.header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.brand{font-weight:900;letter-spacing:1px;font-size:clamp(20px,4vw,30px)}
+.subtitle{font-size:13px;opacity:.85}
+.hud{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 10px}
+.stat{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:9px;padding:7px 9px;font-size:13px}
+.field{position:relative;overflow:hidden;border:2px solid rgba(255,255,255,.4);border-radius:15px;height:520px;background:linear-gradient(var(--sky) 0 31%,var(--grass) 31% 100%)}
+.horizon{position:absolute;left:0;right:0;top:31%;height:6px;background:#5c884b}
+.cloud{position:absolute;left:0;top:18px;font-size:64px;z-index:20;pointer-events:none}
+.rain{position:absolute;left:22px;top:82px;font-size:23px;z-index:19;pointer-events:none}
+.grid{position:absolute;display:grid;gap:8px;left:8px;right:8px;top:175px;bottom:10px;grid-template-columns:repeat(6,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr))}
+.plot{appearance:none;border:2px solid rgba(255,255,255,.5);border-radius:11px;padding:0;margin:0;min-width:0;min-height:64px;font-size:31px;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;touch-action:manipulation;color:#fff}
+.plot:focus-visible,.icon-btn:focus-visible,.main-btn:focus-visible{outline:4px solid #ffe26c;outline-offset:2px}
+.dry{background:var(--dry)} .wet{background:var(--wet)} .tree{background:var(--tree)}
+.bar{position:absolute;left:0;bottom:0;height:7px;background:rgba(255,255,255,.9);pointer-events:none}
+.apple{position:absolute;right:8px;top:5px;font-size:28px;pointer-events:none}
+.ready{box-shadow:inset 0 0 0 4px rgba(255,255,255,.58)}
+.icon-btn{position:absolute;right:8px;top:8px;z-index:75;width:52px;height:52px;border-radius:11px;border:2px solid #fff;background:rgba(20,35,28,.88);font-size:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff}
+.overlay{position:absolute;inset:0;z-index:60;background:rgba(20,35,28,.95);color:#fff;display:flex;align-items:center;justify-content:center;padding:15px}
+.panel{width:min(560px,100%);max-height:96%;overflow:auto;background:rgba(255,255,255,.11);border:1px solid rgba(255,255,255,.32);border-radius:14px;padding:18px}
+.panel h2{margin:0 0 12px;text-align:center;font-size:27px}
+.rules{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;font-size:14px;line-height:1.3}
+.warning{margin-top:14px;padding:10px;border-radius:9px;background:rgba(255,255,255,.1);text-align:center;font-weight:800}
+.main-btn{width:100%;min-height:52px;margin-top:15px;border:0;border-radius:10px;background:#fff;color:#000!important;font-weight:900;font-size:18px;cursor:pointer}
+.hidden{display:none!important}
+.frost{position:absolute;inset:0;z-index:30;pointer-events:none;background:rgba(220,240,255,.58);opacity:0;transition:opacity .25s}
+.message{margin-top:9px;font-size:14px;font-weight:800;min-height:20px}
+.boardrow{display:flex;justify-content:space-between;align-items:center;gap:12px;background:rgba(255,255,255,.09);border-radius:9px;padding:10px;margin:7px 0}
+.close{width:44px;height:44px;border:1px solid #fff;border-radius:8px;background:transparent;color:#fff;font-size:20px;cursor:pointer}
+.boardhead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.note{font-size:12px;opacity:.8}
+.gameover{text-align:center}
+.gameover h2{font-size:38px;margin:0 0 8px}
+@media(max-width:600px){
+ body{padding:8px}
+ .field{height:500px}
+ .grid{top:180px;gap:6px}
+ .plot{font-size:25px;min-height:54px}
+ .rules{grid-template-columns:1fr;font-size:13px;gap:7px}
+ .panel{padding:13px}
+ .panel h2{font-size:23px}
+ .hud{gap:5px}
+ .stat{font-size:12px;padding:6px}
+}
+</style>
+</head>
+<body>
+<main class="game">
+  <div class="header">
+    <div>
+      <div class="brand">HEALTHIA</div>
+      <div class="subtitle">Race the Rain</div>
+    </div>
+  </div>
+
+  <div class="hud" aria-live="polite">
+    <span class="stat">🌱 Seeds <strong id="seeds">5</strong></span>
+    <span class="stat">🌳 Planted <strong id="planted">0</strong></span>
+    <span class="stat">🧺 Apples <strong id="fruit">0</strong></span>
+    <span class="stat">🕳️ Wasted <strong id="wasted">0</strong></span>
+    <span class="stat">❄️ Frost Lost <strong id="frostLost">0</strong></span>
+    <span class="stat">🌧️ Pass <strong id="pass">1</strong></span>
+    <span class="stat">☁️ Speed <strong id="speed">1.0×</strong></span>
+  </div>
+
+  <section id="field" class="field" aria-label="Race the Rain game board">
+    <button id="trophy" class="icon-btn" type="button" aria-label="Open Global Leaderboard" title="Global Leaderboard">🏆</button>
+    <div id="cloud" class="cloud">🌧️</div>
+    <div id="rain" class="rain">💧<br>💧<br>💧</div>
+    <div class="horizon"></div>
+    <div id="grid" class="grid"></div>
+    <div id="frostFlash" class="frost"></div>
+
+    <div id="rules" class="overlay">
+      <div class="panel">
+        <h2>🌱 HOW TO PLAY</h2>
+        <div class="rules">
+          <div>🌱 Start with <strong>5 seeds</strong>.</div>
+          <div>🌧️ Rain makes the soil wet.</div>
+          <div>🌳 Tap wet soil to plant. <strong>−1 seed</strong>.</div>
+          <div>🏜️ Tap dry soil and the seed is wasted.</div>
+          <div>🍎 Apples grow shortly after planting.</div>
+          <div>👆 Tap the <strong>tree's whole square</strong> to collect.</div>
+          <div>🌱 Every apple gives <strong>+2 seeds</strong>.</div>
+          <div>⏱️ Uncollected apples disappear.</div>
+          <div>❄️ Each full rain pass costs <strong>2 seeds</strong>.</div>
+          <div>⚡ Rain gets faster each pass.</div>
+        </div>
+        <div class="warning">☠️ If you have 0 seeds when the rain finishes the final square, GAME OVER.</div>
+        <button id="start" class="main-btn" type="button">▶ START GAME</button>
+      </div>
+    </div>
+
+    <div id="leaderboard" class="overlay hidden">
+      <div class="panel">
+        <div class="boardhead">
+          <h2 style="margin:0">🏆 Global Leaderboard</h2>
+          <button id="closeBoard" class="close" type="button" aria-label="Close leaderboard">✕</button>
+        </div>
+        <p class="note">Ranked by apples collected.</p>
+        <div id="boardRows"></div>
+        <p class="note">Leaderboard display is ready. Supabase syncing will be connected after deployment so scores can be shared globally.</p>
+      </div>
+    </div>
+
+    <div id="gameover" class="overlay hidden">
+      <div class="panel gameover">
+        <h2>GAME OVER</h2>
+        <div style="font-size:20px;font-weight:800">🌱 You finished the rain pass with 0 seeds!</div>
+        <div id="final" style="margin:12px 0"></div>
+        <button id="again" class="main-btn" type="button">PLAY AGAIN</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="message" class="message" aria-live="polite">Read the rules and press START GAME.</div>
+</main>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const rules=$('rules'),start=$('start'),again=$('again'),field=$('field'),grid=$('grid'),
+        cloud=$('cloud'),rain=$('rain'),message=$('message'),flash=$('frostFlash'),
+        gameover=$('gameover'),finalEl=$('final'),trophy=$('trophy'),
+        leaderboard=$('leaderboard'),closeBoard=$('closeBoard'),boardRows=$('boardRows');
+  const seedsEl=$('seeds'),plantedEl=$('planted'),fruitEl=$('fruit'),wastedEl=$('wasted'),
+        frostLostEl=$('frostLost'),passEl=$('pass'),speedEl=$('speed');
+
+  const COLS=6, ROWS=3, WET_MS=2000, FRUIT_APPEAR=1000, FRUIT_LIFE=2000, TREE_LIFE=3000, FROST_LOSS=2;
+  let cells=[],playing=false,pausedForBoard=false,raf=null,last=0,x=-85,lastCol=-1;
+  let seeds=5,planted=0,collected=0,wasted=0,frostLost=0,pass=1;
+
+  function speed(){ return Math.min(3.5,1+(pass-1)*0.25); }
+  function stats(){
+    seedsEl.textContent=seeds; plantedEl.textContent=planted; fruitEl.textContent=collected;
+    wastedEl.textContent=wasted; frostLostEl.textContent=frostLost; passEl.textContent=pass;
+    speedEl.textContent=speed().toFixed(2)+'×';
+  }
+
+  function render(c){
+    c.el.className='plot '+c.state+(c.fruitVisible?' ready':'');
+    c.el.innerHTML=''; c.bar=null;
+    if(c.state==='dry') c.el.textContent='🏜️';
+    if(c.state==='wet'){
+      c.el.textContent='💧';
+      const b=document.createElement('span'); b.className='bar'; b.style.width='100%';
+      c.el.appendChild(b); c.bar=b;
+    }
+    if(c.state==='tree'){
+      c.el.textContent='🌳';
+      if(c.fruitVisible){
+        const a=document.createElement('span'); a.className='apple'; a.textContent='🍎';
+        c.el.appendChild(a);
+      }
+    }
+  }
+
+  function build(){
+    grid.innerHTML=''; cells=[];
+    for(let i=0;i<COLS*ROWS;i++){
+      const el=document.createElement('button'); el.type='button'; el.setAttribute('aria-label','Soil square');
+      const c={el,state:'dry',wetAt:0,plantAt:0,fruitAt:0,fruitVisible:false,fruitResolved:false,bar:null};
+      el.addEventListener('click',()=>squareClick(c));
+      grid.appendChild(el); cells.push(c); render(c);
+    }
+  }
+
+  function squareClick(c){
+    if(!playing||pausedForBoard) return;
+    if(c.state==='tree'){
+      if(c.fruitVisible){
+        c.fruitVisible=false; c.fruitResolved=true; collected++; seeds+=2;
+        render(c); stats(); message.textContent='🍎 Harvested! +2 seeds.';
+      } else message.textContent='🌳 No ripe apple yet.';
+      return;
+    }
+    if(seeds<=0){
+      message.textContent='⚠️ 0 seeds! Harvest an apple before the rain reaches the final square.';
+      return;
+    }
+    seeds--;
+    if(c.state==='wet'){
+      planted++; c.state='tree'; c.plantAt=performance.now(); c.fruitVisible=false; c.fruitResolved=false;
+      render(c); message.textContent='🌳 Tree planted! −1 seed.';
+    } else {
+      wasted++; message.textContent='🏜️ Dry ground! Seed wasted.';
+    }
+    stats();
+    if(seeds===0) message.textContent+=' You still have time to harvest an apple!';
+  }
+
+  function water(col,now){
+    for(let r=0;r<ROWS;r++){
+      const c=cells[r*COLS+col];
+      if(c.state==='dry'){ c.state='wet'; c.wetAt=now; c.fruitVisible=false; c.fruitResolved=false; render(c); }
+    }
+    message.textContent=seeds===0?'⚠️ 0 seeds! Harvest an apple before the final square!':'💧 Wet soil — plant now!';
+  }
+
+  function endGame(){
+    playing=false;
+    if(raf) cancelAnimationFrame(raf); raf=null;
+    finalEl.textContent='Apples: '+collected+' • Trees: '+planted+' • Passes survived: '+Math.max(0,pass-1);
+    gameover.classList.remove('hidden');
+    message.textContent='☠️ Game over.';
+  }
+
+  function finishPass(){
+    if(!playing) return;
+    if(seeds===0){ endGame(); return; }
+    const lost=Math.min(FROST_LOSS,seeds);
+    seeds-=lost; frostLost+=lost;
+    flash.style.opacity='1'; setTimeout(()=>flash.style.opacity='0',300);
+    stats(); pass++; x=-85; lastCol=-1;
+    if(seeds===0) message.textContent='❄️ Frost took your remaining seeds. Recover during this rain pass!';
+    else message.textContent='❄️ Frost −'+lost+' seeds. Pass '+pass+'!';
+  }
+
+  function update(now){
+    for(const c of cells){
+      if(c.state==='wet'){
+        const age=now-c.wetAt;
+        if(c.bar) c.bar.style.width=Math.max(0,100-age/WET_MS*100)+'%';
+        if(age>=WET_MS){ c.state='dry'; render(c); }
+      } else if(c.state==='tree'){
+        const age=now-c.plantAt;
+        if(!c.fruitVisible&&!c.fruitResolved&&age>=FRUIT_APPEAR){
+          c.fruitVisible=true; c.fruitAt=now; render(c);
+        }
+        if(c.fruitVisible&&now-c.fruitAt>=FRUIT_LIFE){
+          c.fruitVisible=false; c.fruitResolved=true; render(c);
+        }
+        if(age>=TREE_LIFE){
+          c.fruitVisible=false; c.fruitResolved=true; c.state='dry'; render(c);
+        }
+      }
+    }
+  }
+
+  function frame(now){
+    if(!playing||pausedForBoard) return;
+    if(!last) last=now;
+    const dt=Math.min(50,now-last); last=now;
+    const width=Math.max(1,field.clientWidth);
+    x+=55*speed()*dt/1000;
+    cloud.style.transform='translateX('+x+'px)';
+    rain.style.transform='translateX('+x+'px)';
+    const col=Math.floor((x+105)/(width/COLS));
+    if(col>=0&&col<COLS&&col!==lastCol){ lastCol=col; water(col,now); }
+    update(now);
+    if(x>width+80){ finishPass(); if(!playing)return; }
+    raf=requestAnimationFrame(frame);
+  }
+
+  function reset(){
+    if(raf) cancelAnimationFrame(raf);
+    raf=null; playing=false; pausedForBoard=false;
+    seeds=5; planted=0; collected=0; wasted=0; frostLost=0; pass=1;
+    x=-85; lastCol=-1; last=0;
+    build(); stats();
+    cloud.style.transform='translateX(-85px)'; rain.style.transform='translateX(-85px)';
+  }
+
+  function begin(){
+    reset();
+    rules.classList.add('hidden'); gameover.classList.add('hidden');
+    playing=true; message.textContent='🌱 GO! Watch the rain.';
+    raf=requestAnimationFrame(frame);
+  }
+
+  function renderBoard(){
+    const demo=[['EcoHero',42],['GreenKid',35],['TreeMaster',28],['RainRunner',21],['HealthiaHero',15]];
+    boardRows.innerHTML=demo.map((r,i)=>
+      '<div class="boardrow"><span><strong>#'+(i+1)+'</strong> '+r[0]+'</span><strong>🍎 '+r[1]+'</strong></div>'
+    ).join('');
+  }
+
+  function openBoard(){
+    const wasPlaying=playing;
+    if(wasPlaying){ pausedForBoard=true; if(raf)cancelAnimationFrame(raf); raf=null; }
+    leaderboard.dataset.wasPlaying=wasPlaying?'1':'0';
+    renderBoard(); leaderboard.classList.remove('hidden');
+  }
+
+  function shutBoard(){
+    leaderboard.classList.add('hidden');
+    if(leaderboard.dataset.wasPlaying==='1'&&playing){
+      pausedForBoard=false; last=0; raf=requestAnimationFrame(frame);
+    }
+  }
+
+  start.addEventListener('click',begin);
+  again.addEventListener('click',()=>{ reset(); gameover.classList.add('hidden'); rules.classList.remove('hidden'); message.textContent='Read the rules and press START GAME.'; });
+  trophy.addEventListener('click',openBoard);
+  closeBoard.addEventListener('click',shutBoard);
+
+  reset();
+})();
+</script>
+</body>
+</html>
