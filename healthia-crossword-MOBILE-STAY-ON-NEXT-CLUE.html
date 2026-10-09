@@ -1,0 +1,107 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><title>HEALTHIA Crossword</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#071914;color:#fff;font-family:Arial,sans-serif}header{text-align:center;padding:16px 10px}h1{margin:0;color:#27e08a;font-size:38px}.sub{font-size:13px;color:#d7f5e7}.leveltitle{color:#ffd84d;font-weight:900;margin:10px}.levels,.stats,.actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}button{border:0;border-radius:12px;min-height:44px;padding:10px 16px;font-weight:800;font-size:15px;background:#294d40;color:#fff}button.on,.check{background:#27e08a;color:#062117}.hint{background:#ffd84d;color:#171300}button:disabled{opacity:.4}.main{max-width:1000px;margin:auto;padding:10px;display:grid;grid-template-columns:minmax(300px,580px) 1fr;gap:14px}.card{border:1px solid #2b7457;border-radius:18px;background:#0c281f;padding:12px}.stats{justify-content:space-between;margin-bottom:10px}.stat{background:#061b14;padding:8px 11px;border-radius:30px}.boardwrap{width:100%;overflow:auto;-webkit-overflow-scrolling:touch}.board{display:grid;gap:2px;background:#03110d;padding:5px;margin:auto}.sq{position:relative;background:#f6f1db;aspect-ratio:1}.sq.black{background:#03110d}.sq input{position:absolute;inset:0;width:100%;height:100%;border:0;background:transparent;text-align:center;text-transform:uppercase;font-size:18px;font-weight:900;color:#092219;padding:5px 0 0;outline:0}.sq.active{background:#e4ff9f}.sq.focus{background:#9ef1c5}.sq.bad{background:#ff9b9b}.sq.good{background:#a9f7bf}.n{position:absolute;z-index:2;top:1px;left:2px;font-size:7px;color:#174b38;font-weight:bold}.actions{margin-top:12px}.actions button{flex:1}.msg{text-align:center;min-height:24px;margin-top:10px;font-weight:bold}.clue{position:relative;padding:11px 10px;margin:5px 0;border-radius:9px;line-height:1.3;cursor:pointer}.clue.active{background:#1b4938}.clue b{color:#27e08a}.clue.done{opacity:.65}.clue.done:after{content:"";position:absolute;left:7px;right:30px;top:50%;height:3px;background:#ffd84d;animation:line .45s forwards;transform-origin:left}.clue.done:before{content:"✏️";position:absolute;z-index:3;top:42%;animation:pen .45s forwards}@keyframes line{from{transform:scaleX(0)}to{transform:scaleX(1)}}@keyframes pen{from{left:4px}to{left:calc(100% - 28px)}}h2{color:#ffd84d;font-size:20px;margin:8px 0}
+.overlay{display:none;position:fixed;inset:0;background:#03110def;z-index:20;align-items:center;justify-content:center;padding:20px;text-align:center}.pop{max-width:480px;background:#123829;border:2px solid #27e08a;border-radius:20px;padding:25px}.pop h3{color:#ffd84d;font-size:32px;margin:0 0 8px}
+@media(max-width:700px){h1{font-size:31px}.main{grid-template-columns:1fr;padding:7px}.card{padding:9px}.board{gap:2px;padding:4px}.sq input{font-size:16px}.stats{gap:4px}.stat{font-size:13px;padding:7px 8px}.actions{display:grid;grid-template-columns:1fr 1fr}.actions .check{grid-column:1/-1}.clue{font-size:15px;min-height:44px}.boardwrap{overflow-x:hidden}}
+
+/* Mobile-first independent clue scrolling */
+html,body{overscroll-behavior:none} .main{align-items:start} .cluecard{min-height:0;display:flex;flex-direction:column;max-height:min(78vh,760px)} .cluescroll{overflow-anchor:none;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;min-height:0;flex:1;scrollbar-color:#36c88a #103327} .clue.done{order:999;opacity:.52} .clue{order:0;touch-action:pan-y} .clue.active{outline:2px solid #40dba1} .cluegroup{display:flex;flex-direction:column} .clue.done:after{pointer-events:none} .clue.done:before{pointer-events:none}
+@media(max-width:700px){header{padding:7px 6px}h1{font-size:24px}.sub{font-size:10px}.leveltitle{margin:5px;font-size:12px}.levels{gap:3px}.levels button{min-height:30px;padding:4px 8px;font-size:11px;border-radius:7px}.main{display:flex;flex-direction:column;gap:7px;padding:5px;height:auto}.main>section,.main>aside{width:100%}.main>section{position:relative}.card{border-radius:11px;padding:7px}.boardwrap{overflow:auto;max-height:47dvh;overscroll-behavior:contain}.board{max-width:100%}.cluecard{height:28dvh;min-height:135px;max-height:35dvh}.cluescroll{padding:0 4px}.clue{padding:7px 8px;margin:3px 0;font-size:13px;min-height:32px}.cluecard h2{font-size:14px;margin:5px 0}.stats{margin-bottom:5px}.stat{font-size:11px;padding:5px 7px}.actions{margin-top:6px}.actions button{min-height:36px;font-size:12px;padding:5px}.msg{min-height:18px;margin-top:4px;font-size:12px}.sq input{font-size:clamp(10px,3vw,16px)} }
+@media(max-width:950px) and (orientation:landscape){header{padding:3px}.sub{display:none}.leveltitle{margin:2px}.levels button{min-height:26px}.main{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);height:calc(100dvh - 91px);overflow:hidden;align-items:stretch}.main>section{min-height:0;overflow:auto}.main>aside{height:100%;max-height:none;min-height:0}.boardwrap{max-height:calc(100dvh - 190px)}.cluecard{height:100%;max-height:none}.cluescroll{height:100%}}
+
+.cluescroll,.cluegroup{overflow-anchor:none!important}
+</style></head><body>
+<header><h1>HEALTHIA</h1><div class="sub">RECYCLING & CLEANUP CROSSWORD • AGES 7–13</div><div id="lt" class="leveltitle"></div><div class="levels"><button id="b0">Level 1</button><button id="b1" disabled>🔒 Level 2</button><button id="b2" disabled>🔒 Level 3</button><button id="b3" disabled>🔒 Level 4</button><button id="b4" disabled>🔒 Level 5</button><button id="b5" disabled>🔒 Level 6</button><button id="b6" disabled>🔒 Level 7</button></div></header>
+<div class="main"><section class="card"><div class="stats"><span class="stat">⭐ Score: <b id="score">0</b></span><span class="stat">💡 Hints: <b id="hints">0</b></span><span class="stat">⏱ <b id="time">00:00</b></span></div><div class="boardwrap"><div id="board" class="board"></div></div><div class="actions"><button class="check" id="check">Check Answers</button><button class="hint" id="hint">Use Hint</button><button id="clear">Clear</button></div><div id="msg" class="msg">Tap a clue or square to begin.</div></section><aside class="card cluecard"><div class="cluescroll" id="cluescroll"><h2>Across</h2><div id="across" class="cluegroup"></div><h2>Down</h2><div id="down" class="cluegroup"></div></div></aside></div>
+<div id="overlay" class="overlay"><div class="pop"><h3 id="winTitle"></h3><div id="winText"></div><br><button class="check" id="next"></button></div></div>
+<script>
+(function(){
+const levels=[
+{name:"LEVEL 1 — CLEANUP STARTER",score:600,hints:5,words:[
+["TRASH","Things we throw away."],["CAN","A metal drink container."],["CLEAN","The opposite of dirty."],["EARTH","The planet we live on."],["REUSE","Use something again instead of throwing it away."],["SORT","Put things into the correct groups."],["BAG","You can use this to collect litter."],["BIN","A container for trash or recycling."]]},
+{name:"LEVEL 2 — RECYCLING HERO",score:800,hints:4,words:[
+["RECYCLE","Turn used materials into things that can be used again."],["BOTTLE","A container often used for water or drinks."],["PLASTIC","A common material used for bottles and containers."],["GLASS","A material used to make many jars and bottles."],["LITTER","Trash left on the ground."],["OCEAN","A huge body of salt water."],["REDUCE","Use less so you make less waste."],["NATURE","Plants, animals, and the world outdoors."],["CLEANUP","Working together to remove trash from an area."],["GREEN","A color often connected with helping the environment."]]},
+{name:"LEVEL 3 — PLANET PROTECTOR",score:1000,hints:3,words:[
+["RECYCLE","Process used materials so they can become new products."],["REDUCE","Use less so you create less waste."],["REUSE","Use an item again instead of throwing it away."],["LITTER","Trash left on the ground or in the environment."],["CLEANUP","An organized effort to remove trash from an area."],["PLASTIC","A common material used for bottles and containers."],["PAPER","Material commonly recycled after use."],["GLASS","Material used for jars and bottles."],["BOTTLE","A drink container often collected during cleanups."],["OCEAN","A huge body of salt water we should keep clean."],["BEACH","A sandy shoreline where cleanups often happen."],["TRASH","Things thrown away as waste."],["COMPOST","Food scraps and yard waste turned into soil material."],["LANDFILL","A place where garbage is buried."],["POLLUTION","Harmful contamination of our environment."],["EARTH","The planet we all share."],["NATURE","Plants, animals, and the natural world."],["SORT","Separate recyclables into correct groups."],["CONSERVE","Protect resources and avoid wasting them."],["COMMUNITY","People working together in their neighborhood."]]},
+{name:"LEVEL 4 — WATER PROTECTOR",score:1200,hints:3,words:[
+["WATER","A resource every living thing needs."],["RIVER","Flowing freshwater that travels toward a lake or ocean."],["STREAM","A small flowing body of water."],["WETLAND","Land where water covers the soil for part or all of the year."],["DROUGHT","A long period with very little rain."],["RUNOFF","Water that flows over land and can carry pollution."],["DRAIN","An opening that carries water away."],["FILTER","Something that removes unwanted material from water."],["RAIN","Water droplets that fall from clouds."],["FRESHWATER","Water with very little salt."],["WATERSHED","Land where water drains to the same river, lake, or ocean."],["CONSERVE","Protect a resource and avoid wasting it."]]},
+{name:"LEVEL 5 — WILDLIFE GUARDIAN",score:1400,hints:2,words:[
+["HABITAT","The natural home of a plant or animal."],["SPECIES","A group of similar living organisms."],["WILDLIFE","Animals living naturally in the environment."],["FOREST","A large area covered mainly with trees."],["POLLINATOR","An animal that helps move pollen between flowers."],["ECOSYSTEM","Living things and their environment working together."],["NATIVE","Naturally found in a particular area."],["MIGRATION","Seasonal movement of animals from one place to another."],["SHELTER","A protected place where an animal can live or hide."],["FOODCHAIN","The path showing how energy passes between living things."],["PROTECT","Keep something safe from harm."],["BIODIVERSITY","The variety of living things in an area."]]},
+{name:"LEVEL 6 — CLIMATE CHAMPION",score:1600,hints:2,words:[
+["CLIMATE","The usual weather conditions of a place over a long time."],["ENERGY","The ability to do work or cause change."],["SOLAR","Energy that comes from sunlight."],["WIND","Moving air that can be used to generate electricity."],["RENEWABLE","A resource that can naturally be replaced."],["EMISSIONS","Gases released into the air."],["CARBON","An element found in carbon dioxide and living things."],["ATMOSPHERE","The layer of gases surrounding Earth."],["EFFICIENCY","Using less energy to accomplish the same task."],["TRANSIT","Transportation systems that move many people."],["ELECTRIC","Powered by electricity rather than directly by fuel."],["CONSERVATION","Careful protection and use of natural resources."]]},
+{name:"LEVEL 7 — HEALTHIA ECO MASTER",score:2000,hints:1,words:[
+["SUSTAINABLE","Able to continue while protecting resources for the future."],["ENVIRONMENT","The natural world and surroundings in which we live."],["RESPONSIBILITY","A duty to take care of something."],["RESTORATION","Helping a damaged natural area become healthy again."],["CONSERVATION","Protection and careful use of natural resources."],["BIODIVERSITY","The variety of plants, animals, and other life."],["COMPOSTING","Turning organic scraps into useful soil material."],["RECYCLING","Processing used materials so they can be used again."],["POLLUTION","Harmful material introduced into the environment."],["COMMUNITY","People in an area working together."],["RESOURCES","Useful materials supplied by nature."],["STEWARD","A person who takes responsibility for caring for something."]]}
+];
+let unlocked=0,li=0,placed=[],grid=[],rows=0,cols=0,active=0,score=0,hints=0,secs=0,timer;
+const $=id=>document.getElementById(id);
+function make(words){
+ // deterministic backtracking-like greedy with strict adjacency; try several starter/order variants and keep most words.
+ let best=null;
+ for(let trial=0;trial<words.length;trial++){
+  let G=Array.from({length:31},()=>Array(31).fill(null)), P=[];
+  function ok(w,r,c,d){
+   if(r<1||c<1||r+(d==="D"?w.length:0)>=30||c+(d==="A"?w.length:0)>=30)return false;
+   let cross=0,br=r-(d==="D"?1:0),bc=c-(d==="A"?1:0),ar=r+(d==="D"?w.length:0),ac=c+(d==="A"?w.length:0);
+   if(G[br][bc]||G[ar][ac])return false;
+   for(let i=0;i<w.length;i++){let rr=r+(d==="D"?i:0),cc=c+(d==="A"?i:0),x=G[rr][cc];if(x&&x!==w[i])return false;if(x===w[i]){cross++;continue}if(d==="A"){if(G[rr-1][cc]||G[rr+1][cc])return false}else if(G[rr][cc-1]||G[rr][cc+1])return false}
+   return P.length===0||cross===1;
+  }
+  function put(o,r,c,d){for(let i=0;i<o[0].length;i++)G[r+(d==="D"?i:0)][c+(d==="A"?i:0)]=o[0][i];P.push({a:o[0],clue:o[1],r,c,d})}
+  let order=[words[trial],...words.filter((_,i)=>i!==trial).sort((a,b)=>b[0].length-a[0].length)];
+  put(order[0],15,Math.floor((31-order[0][0].length)/2),"A");
+  for(let oi=1;oi<order.length;oi++){let o=order[oi],found=null;
+   outer:for(let pi=0;pi<P.length;pi++){let p=P[pi];for(let i=0;i<o[0].length;i++)for(let j=0;j<p.a.length;j++)if(o[0][i]===p.a[j]){let d=p.d==="A"?"D":"A",r=p.r+(p.d==="D"?j:0)-(d==="D"?i:0),c=p.c+(p.d==="A"?j:0)-(d==="A"?i:0);if(ok(o[0],r,c,d)){found={r,c,d};break outer}}}
+   if(found)put(o,found.r,found.c,found.d);
+  }
+  if(!best||P.length>best.P.length)best={G,P}; if(P.length===words.length)break;
+ }
+ let minr=30,maxr=0,minc=30,maxc=0;best.P.forEach(p=>{minr=Math.min(minr,p.r);minc=Math.min(minc,p.c);maxr=Math.max(maxr,p.r+(p.d==="D"?p.a.length-1:0));maxc=Math.max(maxc,p.c+(p.d==="A"?p.a.length-1:0))});
+ rows=maxr-minr+1;cols=maxc-minc+1;grid=Array.from({length:rows},()=>Array(cols).fill(null));placed=best.P.map(p=>({...p,r:p.r-minr,c:p.c-minc}));placed.forEach(p=>{for(let i=0;i<p.a.length;i++)grid[p.r+(p.d==="D"?i:0)][p.c+(p.d==="A"?i:0)]=p.a[i]});
+}
+function cells(p){return [...Array(p.a.length)].map((_,i)=>[p.r+(p.d==="D"?i:0),p.c+(p.d==="A"?i:0)])}
+function inp(r,c){return $("board").children[r*cols+c].querySelector("input")}
+function render(){
+ let starts=[...new Set(placed.map(p=>p.r+","+p.c))].sort((a,b)=>{let A=a.split(",").map(Number),B=b.split(",").map(Number);return A[0]-B[0]||A[1]-B[1]}),nums={};starts.forEach((k,i)=>nums[k]=i+1);
+ $("board").innerHTML="";$("board").style.gridTemplateColumns=`repeat(${cols},1fr)`;$("board").style.width=`min(100%,${cols*42}px)`;
+ for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){let d=document.createElement("div");d.className="sq"+(grid[r][c]?"":" black");if(grid[r][c]){if(nums[r+","+c]){let n=document.createElement("span");n.className="n";n.textContent=nums[r+","+c];d.appendChild(n)}let x=document.createElement("input");x.maxLength=1;x.inputMode="text";x.autocomplete="off";x.addEventListener("focus",()=>chooseCell(r,c));x.addEventListener("keydown",e=>{let cs=cells(placed[active]),i=cs.findIndex(q=>q[0]===r&&q[1]===c);if(e.key==="Backspace"){e.preventDefault();if(x.value){x.value="";mark()}else if(i>0){let prev=inp(...cs[i-1]);prev.value="";prev.focus();mark()}return}if(/^[a-zA-Z]$/.test(e.key)){e.preventDefault();x.value=e.key.toUpperCase();mark();if(i>=0&&i<cs.length-1)inp(...cs[i+1]).focus()}});x.addEventListener("input",e=>{let v=e.target.value.replace(/[^a-z]/gi,"").toUpperCase();e.target.value=v?v.slice(-1):"";mark();if(v)move(r,c)});d.appendChild(x)}$("board").appendChild(d)}
+ $("across").innerHTML="";$("down").innerHTML="";placed.forEach((p,i)=>{let d=document.createElement("div");d.className="clue";d.id="cl"+i;d.innerHTML=`<b>${nums[p.r+","+p.c]}.</b> ${p.clue}`;d.addEventListener("click",()=>select(i,true));$(p.d==="A"?"across":"down").appendChild(d)});
+ lastDone=placed.map(()=>false);select(0,false);
+}
+function select(i,focus){active=i;document.querySelectorAll(".sq").forEach(x=>x.classList.remove("active","focus"));document.querySelectorAll(".clue").forEach(x=>x.classList.remove("active"));cells(placed[i]).forEach(([r,c])=>$("board").children[r*cols+c].classList.add("active"));$("cl"+i).classList.add("active");if(focus){let first=cells(placed[i]).find(([r,c])=>!inp(r,c).value)||cells(placed[i])[0];inp(...first).focus({preventScroll:true})}}
+function chooseCell(r,c){let m=placed.map((p,i)=>[p,i]).filter(([p])=>cells(p).some(q=>q[0]===r&&q[1]===c));if(m.length&&!m.some(q=>q[1]===active))active=m[0][1];select(active,false);$("board").children[r*cols+c].classList.add("focus")}
+function move(r,c){let cs=cells(placed[active]),i=cs.findIndex(q=>q[0]===r&&q[1]===c);if(i>=0&&i<cs.length-1)inp(...cs[i+1]).focus()}
+let lastDone=[];
+function mark(){
+  // Preserve the user's clue-list position even when completed clues reorder.
+  const pane=document.querySelector('.cluescroll');
+  const oldTop=pane?pane.scrollTop:0;
+  const oldPageX=window.scrollX,oldPageY=window.scrollY;
+  const newly=[];
+  placed.forEach((p,i)=>{
+    const done=cells(p).every(([r,c],j)=>inp(r,c).value===p.a[j]);
+    const el=$("cl"+i);
+    el.classList.toggle("done",done);
+    if(done&&!lastDone[i])newly.push(i);
+    lastDone[i]=done;
+  });
+  if(newly.length){
+    const next=placed.findIndex((p,i)=>!lastDone[i]);
+    if(next>=0)select(next,false);
+  }
+  // WebKit may re-anchor after layout and after the input event completes.
+  if(pane)pane.scrollTop=oldTop;
+  window.scrollTo(oldPageX,oldPageY);
+  requestAnimationFrame(()=>{
+    if(pane)pane.scrollTop=oldTop;
+    window.scrollTo(oldPageX,oldPageY);
+    requestAnimationFrame(()=>{if(pane)pane.scrollTop=oldTop;});
+  });
+}
+function load(n){if(n>unlocked)return;li=n;score=levels[n].score;hints=levels[n].hints;secs=0;$("score").textContent=score;$("hints").textContent=hints;$("time").textContent="00:00";$("lt").textContent=levels[n].name;make(levels[n].words);render();for(let i=0;i<levels.length;i++){let b=$("b"+i);b.disabled=i>unlocked;b.textContent=(i>unlocked?"🔒 ":"")+"Level "+(i+1);b.className=i===n?"on":""}clearInterval(timer);timer=setInterval(()=>{secs++;$("time").textContent=String(Math.floor(secs/60)).padStart(2,"0")+":"+String(secs%60).padStart(2,"0")},1000);$("msg").textContent="Tap a clue or square to begin."}
+$("check").addEventListener("click",()=>{let wrong=0,empty=0;for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)if(grid[r][c]){let x=inp(r,c),d=$("board").children[r*cols+c];d.classList.remove("bad","good");if(!x.value)empty++;else if(x.value!==grid[r][c]){wrong++;d.classList.add("bad")}else d.classList.add("good")}score=Math.max(0,score-wrong*10);$("score").textContent=score;if(!wrong&&!empty){clearInterval(timer);if(li<levels.length-1){unlocked=Math.max(unlocked,li+1);$("winTitle").textContent="LEVEL COMPLETE!";$("winText").innerHTML=`Great work! Level ${li+2} is unlocked.<br>Score: ${score}`;$("next").textContent="Next Level";$("next").onclick=()=>{$("overlay").style.display="none";load(li+1)}}else{$("winTitle").textContent="PLANET PROTECTOR!";$("winText").textContent="You completed all 7 HEALTHIA environmental challenges!";$("next").textContent="Play Again";$("next").onclick=()=>location.reload()}$("overlay").style.display="flex"}else $("msg").textContent=wrong?`${wrong} letter${wrong===1?"":"s"} need another look.`:`Great job — ${empty} squares left.`});
+$("hint").addEventListener("click",()=>{if(!hints){$("msg").textContent="No hints left!";return}let p=placed[active],cs=cells(p),i=cs.findIndex(([r,c],j)=>inp(r,c).value!==p.a[j]);if(i<0){$("msg").textContent="That word is already complete.";return}inp(...cs[i]).value=p.a[i];hints--;score=Math.max(0,score-30);$("hints").textContent=hints;$("score").textContent=score;mark()});
+$("clear").addEventListener("click",()=>{document.querySelectorAll("#board input").forEach(x=>x.value="");document.querySelectorAll(".sq").forEach(x=>x.classList.remove("bad","good"));mark()});
+[0,1,2,3,4,5,6].forEach(i=>$("b"+i).addEventListener("click",()=>load(i)));
+load(0);
+})();
+</script></body></html>
