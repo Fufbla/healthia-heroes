@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>HEALTHIA — Race the Rain</title>
+<style>
+:root{
+  --green:#173f2a; --green2:#245b3a; --sky:#bde5f5; --grass:#8fc36c;
+  --dry:#ad784c; --wet:#63a8d2; --tree:#72a65a; --white:#fff;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:Arial,Helvetica,sans-serif;background:#102b1d;color:#fff}
+body{padding:14px}
+.game{width:min(900px,100%);margin:0 auto}
+.header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.brand{font-weight:900;letter-spacing:1px;font-size:clamp(20px,4vw,30px)}
+.subtitle{font-size:13px;opacity:.85}
+.hud{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 10px}
+.stat{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:9px;padding:7px 9px;font-size:13px}
+.field{position:relative;overflow:hidden;border:2px solid rgba(255,255,255,.4);border-radius:15px;height:520px;background:linear-gradient(var(--sky) 0 31%,var(--grass) 31% 100%)}
+.horizon{position:absolute;left:0;right:0;top:31%;height:6px;background:#5c884b}
+.cloud{position:absolute;left:0;top:18px;font-size:64px;z-index:20;pointer-events:none}
+.rain{position:absolute;left:22px;top:82px;font-size:23px;z-index:19;pointer-events:none}
+.grid{position:absolute;display:grid;gap:8px;left:8px;right:8px;top:175px;bottom:10px;grid-template-columns:repeat(6,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr))}
+.plot{appearance:none;border:2px solid rgba(255,255,255,.5);border-radius:11px;padding:0;margin:0;min-width:0;min-height:64px;font-size:31px;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;touch-action:manipulation;color:#fff}
+.plot:focus-visible,.icon-btn:focus-visible,.main-btn:focus-visible{outline:4px solid #ffe26c;outline-offset:2px}
+.dry{background:var(--dry)} .wet{background:var(--wet)} .tree{background:var(--tree)}
+.bar{position:absolute;left:0;bottom:0;height:7px;background:rgba(255,255,255,.9);pointer-events:none}
+.apple{position:absolute;right:8px;top:5px;font-size:28px;pointer-events:none}
+.ready{box-shadow:inset 0 0 0 4px rgba(255,255,255,.58)}
+.icon-btn{position:absolute;right:8px;top:8px;z-index:75;width:52px;height:52px;border-radius:11px;border:2px solid #fff;background:rgba(20,35,28,.88);font-size:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff}
+.overlay{position:absolute;inset:0;z-index:60;background:rgba(20,35,28,.95);color:#fff;display:flex;align-items:center;justify-content:center;padding:15px}
+.panel{width:min(560px,100%);max-height:96%;overflow:auto;background:rgba(255,255,255,.11);border:1px solid rgba(255,255,255,.32);border-radius:14px;padding:18px}
+.panel h2{margin:0 0 12px;text-align:center;font-size:27px}
+.rules{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;font-size:14px;line-height:1.3}
+.warning{margin-top:14px;padding:10px;border-radius:9px;background:rgba(255,255,255,.1);text-align:center;font-weight:800}
+.main-btn{width:100%;min-height:52px;margin-top:15px;border:0;border-radius:10px;background:#fff;color:#000!important;font-weight:900;font-size:18px;cursor:pointer}
+.hidden{display:none!important}
+.frost{position:absolute;inset:0;z-index:30;pointer-events:none;background:rgba(220,240,255,.58);opacity:0;transition:opacity .25s}
+.message{margin-top:9px;font-size:14px;font-weight:800;min-height:20px}
+.boardrow{display:flex;justify-content:space-between;align-items:center;gap:12px;background:rgba(255,255,255,.09);border-radius:9px;padding:10px;margin:7px 0}
+.close{width:44px;height:44px;border:1px solid #fff;border-radius:8px;background:transparent;color:#fff;font-size:20px;cursor:pointer}
+.boardhead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.note{font-size:12px;opacity:.8}
+.gameover{text-align:center}
+.gameover h2{font-size:38px;margin:0 0 8px}
+@media(max-width:600px){
+ body{padding:8px}
+ .field{height:500px}
+ .grid{top:180px;gap:6px}
+ .plot{font-size:25px;min-height:54px}
+ .rules{grid-template-columns:1fr;font-size:13px;gap:7px}
+ .panel{padding:13px}
+ .panel h2{font-size:23px}
+ .hud{gap:5px}
+ .stat{font-size:12px;padding:6px}
+}
+
+/* iPhone one-screen portrait and landscape layout */
+html,body{height:100%;height:100dvh;overflow:hidden;overscroll-behavior:none}
+body{padding:max(5px,env(safe-area-inset-top)) max(6px,env(safe-area-inset-right)) max(5px,env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left));touch-action:manipulation}
+.game{height:100%;min-height:0;display:flex;flex-direction:column;width:min(100%,1100px)}
+.header{flex:0 0 auto;margin:0 0 3px}
+.brand{font-size:clamp(15px,3.5vw,23px)}
+.subtitle{font-size:11px}
+.hud{flex:0 0 auto;margin:3px 0 5px;gap:4px;justify-content:center}
+.stat{padding:4px 6px;font-size:clamp(10px,2.6vw,12px);white-space:nowrap}
+.field{flex:1 1 0;min-height:0;height:auto;border-radius:10px}
+.grid{top:29%;bottom:2%;gap:clamp(3px,.8vh,7px);left:6px;right:6px}
+.plot{min-height:0;font-size:clamp(17px,4.3vh,30px);border-radius:7px}
+.apple{font-size:clamp(12px,3vh,24px);right:3px;top:1px}
+.cloud{top:2%;font-size:clamp(25px,8vh,58px)}
+.rain{top:13%;font-size:clamp(12px,3.2vh,22px);line-height:1}
+.icon-btn{width:clamp(34px,7vh,48px);height:clamp(34px,7vh,48px);font-size:clamp(18px,4vh,26px)}
+.message{flex:0 0 auto;margin:3px 0 0;min-height:15px;font-size:clamp(10px,2.3vw,13px);line-height:1.15}
+.overlay{padding:5px}
+.panel{padding:9px;max-height:100%;overscroll-behavior:contain}
+.panel h2{font-size:clamp(16px,4vh,24px);margin-bottom:5px}
+.rules{gap:4px 10px;font-size:clamp(10px,2.2vh,13px);line-height:1.15}
+.warning{margin-top:6px;padding:6px;font-size:clamp(10px,2vh,13px)}
+.main-btn{min-height:36px;margin-top:7px;font-size:14px}
+@media (orientation:landscape) and (max-height:600px){
+ body{padding-top:max(2px,env(safe-area-inset-top));padding-bottom:max(2px,env(safe-area-inset-bottom))}
+ .game{max-width:none}
+ .header{position:absolute;left:max(8px,env(safe-area-inset-left));top:max(3px,env(safe-area-inset-top));z-index:2;pointer-events:none}
+ .brand{font-size:13px;line-height:1}.subtitle{font-size:9px}
+ .hud{margin:0 0 3px;padding-left:125px;min-height:28px;align-items:center;gap:3px;flex-wrap:nowrap}
+ .stat{font-size:clamp(9px,1.9vh,12px);padding:3px 4px;min-width:0}
+ .field{border-radius:8px}
+ .grid{top:26%;bottom:2%;gap:4px;left:5px;right:5px}
+ .plot{font-size:clamp(17px,6vh,27px);border-width:1px;min-height:0}
+ .apple{font-size:clamp(12px,4vh,19px)}
+ .cloud{font-size:clamp(24px,9vh,44px);top:0}
+ .rain{font-size:clamp(10px,3.5vh,17px);top:10%}
+ .icon-btn{width:34px;height:34px;font-size:19px;right:5px;top:4px}
+ .message{margin-top:2px;min-height:12px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .panel{width:min(95%,700px);padding:7px}
+ .rules{grid-template-columns:1fr 1fr;font-size:clamp(10px,2.8vh,12px);gap:3px 12px}
+ .panel h2{font-size:18px;margin-bottom:4px}
+ .warning{margin-top:5px;padding:4px;font-size:11px}
+ .main-btn{min-height:32px;margin-top:5px;font-size:13px}
+ .boardrow{padding:4px;margin:3px 0}
+ .gameover h2{font-size:24px}
+ #playerName{min-height:34px!important;padding:5px!important}
+}
+@media (orientation:portrait) and (max-width:600px){
+ .hud{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+ .stat{text-align:center;padding:4px 2px;font-size:clamp(9px,2.6vw,12px)}
+ .grid{top:25%;bottom:2%}
+ .rules{grid-template-columns:1fr}
+}
+@media (max-height:420px){.panel{font-size:11px}.rules{line-height:1.08}.warning{padding:3px}}
+#soundToggle{right:65px!important}
+#leaderboard{z-index:110!important}
+#leaderboard .panel{position:relative;z-index:111}
+#closeBoard{position:relative;z-index:112;flex:0 0 48px;touch-action:manipulation}
+#trophy{z-index:75}
+button{-webkit-tap-highlight-color:transparent}
+.plot,.icon-btn,.main-btn{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+
+</style>
+</head>
+<body>
+<main class="game">
+  <div class="header">
+    <div>
+      <div class="brand">HEALTHIA</div>
+      <div class="subtitle">Race the Rain</div>
+    </div>
+  </div>
+
+  <div class="hud" aria-live="polite">
+    <span class="stat">🌱 Seeds <strong id="seeds">5</strong></span>
+    <span class="stat">🌳 Planted <strong id="planted">0</strong></span>
+    <span class="stat">🧺 Apples <strong id="fruit">0</strong></span>
+    <span class="stat">🕳️ Wasted <strong id="wasted">0</strong></span>
+    <span class="stat">❄️ Frost Lost <strong id="frostLost">0</strong></span>
+    <span class="stat">🌧️ Pass <strong id="pass">1</strong></span>
+    <span class="stat">☁️ Speed <strong id="speed">1.0×</strong></span>
+  </div>
+
+  <section id="field" class="field" aria-label="Race the Rain game board">
+    <button id="trophy" class="icon-btn" type="button" aria-label="Open Global Leaderboard" title="Global Leaderboard">🏆</button>
+    <button id="soundToggle" class="icon-btn" type="button" aria-label="Mute sound" title="Toggle 8-bit sound" style="right:calc(8px + clamp(34px,7vh,48px) + 7px);background:#174e3a;font-size:21px">🔊</button>
+    <div id="cloud" class="cloud">🌧️</div>
+    <div id="rain" class="rain">💧<br>💧<br>💧</div>
+    <div class="horizon"></div>
+    <div id="grid" class="grid"></div>
+    <div id="frostFlash" class="frost"></div>
+
+    <div id="rules" class="overlay">
+      <div class="panel">
+        <h2>🌱 HOW TO PLAY</h2>
+        <div class="rules">
+          <div>🌱 Start with <strong>5 seeds</strong>.</div>
+          <div>🌧️ Rain makes the soil wet.</div>
+          <div>🌳 Tap wet soil to plant. <strong>−1 seed</strong>.</div>
+          <div>🏜️ Tap dry soil and the seed is wasted.</div>
+          <div>🍎 Apples grow shortly after planting.</div>
+          <div>👆 Tap the <strong>tree's whole square</strong> to collect.</div>
+          <div>🌱 Every apple gives <strong>+2 seeds</strong>.</div>
+          <div>⏱️ Uncollected apples disappear.</div>
+          <div>❄️ Each full rain pass costs <strong>2 seeds</strong>.</div>
+          <div>⚡ Rain gets faster each pass.</div>
+        </div>
+        <div class="warning">☠️ If you have 0 seeds when the rain finishes the final square, GAME OVER.</div>
+        <button id="start" class="main-btn" type="button">▶ START GAME</button>
+      </div>
+    </div>
+
+    <div id="leaderboard" class="overlay hidden">
+      <div class="panel">
+        <div class="boardhead">
+          <h2 style="margin:0">🏆 Global Leaderboard</h2>
+          <button id="closeBoard" class="close" type="button" aria-label="Close leaderboard">✕</button>
+        </div>
+        <p class="note">Ranked by apples collected.</p>
+        <div id="boardRows"></div>
+        <p id="boardStatus" class="note">Loading global scores…</p>
+      </div>
+    </div>
+
+    <div id="gameover" class="overlay hidden">
+      <div class="panel gameover">
+        <h2>GAME OVER</h2>
+        <div style="font-size:20px;font-weight:800">🌱 You finished the rain pass with 0 seeds!</div>
+        <div id="final" style="margin:12px 0"></div>
+        <div id="scoreSubmit" style="margin-top:14px;text-align:left">
+          <label for="playerName" style="display:block;font-weight:800;margin-bottom:6px">🏆 Enter your name for the Global Leaderboard</label>
+          <input id="playerName" maxlength="20" autocomplete="nickname" placeholder="Player name" style="width:100%;min-height:48px;border-radius:9px;border:2px solid white;padding:10px 12px;font-size:16px;color:#111;background:#fff">
+          <button id="saveScore" class="main-btn" type="button">SUBMIT SCORE</button>
+          <div id="saveStatus" class="note" style="margin-top:8px;text-align:center"></div>
+        </div>
+        <button id="again" class="main-btn" type="button">PLAY AGAIN</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="message" class="message" aria-live="polite">Read the rules and press START GAME.</div>
+</main>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const rules=$('rules'),start=$('start'),again=$('again'),field=$('field'),grid=$('grid'),
+        cloud=$('cloud'),rain=$('rain'),message=$('message'),flash=$('frostFlash'),
+        gameover=$('gameover'),finalEl=$('final'),trophy=$('trophy'),
+        leaderboard=$('leaderboard'),closeBoard=$('closeBoard'),boardRows=$('boardRows'),
+        boardStatus=$('boardStatus'),playerName=$('playerName'),saveScore=$('saveScore'),saveStatus=$('saveStatus');
+  const seedsEl=$('seeds'),plantedEl=$('planted'),fruitEl=$('fruit'),wastedEl=$('wasted'),
+        frostLostEl=$('frostLost'),passEl=$('pass'),speedEl=$('speed');
+
+  const SUPABASE_URL='https://adakwbhxiuatjvphutgo.supabase.co';
+  const SUPABASE_KEY='sb_publishable_-9XXEFzLZ-BEdmDUFSpzCQ_-m8W0Wfh';
+  const SCORE_TABLE='race_the_rain_scores';
+
+  const COLS=6, ROWS=3, WET_MS=2000, FRUIT_APPEAR=1000, FRUIT_LIFE=2000, TREE_LIFE=3000, FROST_LOSS=2;
+  let cells=[],playing=false,pausedForBoard=false,raf=null,last=0,x=-85,lastCol=-1;
+  let seeds=5,planted=0,collected=0,wasted=0,frostLost=0,pass=1;
+
+
+  // Original self-contained 8-bit music: no external audio downloads.
+  const soundToggle=$('soundToggle');
+  let audioCtx=null, master=null, musicTimer=null, musicStep=0, soundOn=true;
+  const AudioEngine=window.AudioContext||window.webkitAudioContext;
+  function unlockAudio(){
+    if(!soundOn||!AudioEngine)return;
+    try{
+      if(!audioCtx){
+        audioCtx=new AudioEngine();
+        master=audioCtx.createGain();
+        master.gain.value=.22;
+        master.connect(audioCtx.destination);
+      }
+      if(audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
+    }catch(e){console.warn('Audio unavailable',e);}
+  }
+  function tone(freq,duration=.10,type='square',volume=.16,delay=0){
+    if(!soundOn||!audioCtx||audioCtx.state==='closed')return;
+    const t=audioCtx.currentTime+delay;
+    try{
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.type=type;o.frequency.setValueAtTime(freq,t);
+      g.gain.setValueAtTime(.0001,t);
+      g.gain.exponentialRampToValueAtTime(Math.max(.001,volume),t+.008);
+      g.gain.exponentialRampToValueAtTime(.0001,t+duration);
+      o.connect(g);g.connect(master);o.start(t);o.stop(t+duration+.015);
+    }catch(e){}
+  }
+  function sfx(event){
+    if(!soundOn)return;
+    unlockAudio();
+    const patterns={
+      plant:[[523,0],[659,.07],[784,.14]],
+      apple:[[784,0],[988,.07],[1175,.14],[1568,.22]],
+      waste:[[280,0],[220,.09]],
+      frost:[[440,0],[330,.12],[220,.24]],
+      rain:[[392,0],[523,.06]],
+      gameover:[[392,0],[330,.17],[262,.34],[196,.52]],
+      start:[[523,0],[659,.1],[784,.2],[1047,.3]]
+    };
+    for(const [f,d] of (patterns[event]||[]))tone(f,.12,'square',.18,d);
+  }
+  const melody=[659,784,988,784,659,523,587,659,784,988,1175,988,784,659,587,523,
+                523,659,784,659,523,440,523,587,659,784,988,784,659,587,523,392];
+  const bass=[131,131,175,175,196,196,175,175];
+  function musicTick(){
+    if(!playing||pausedForBoard||!soundOn||leaderboard.classList.contains('hidden')===false)return;
+    if(!audioCtx||audioCtx.state!=='running')return;
+    tone(melody[musicStep%melody.length],.105,'square',.075);
+    if(musicStep%4===0)tone(bass[Math.floor(musicStep/4)%bass.length],.22,'triangle',.13);
+    musicStep++;
+  }
+  function startMusic(){
+    unlockAudio();
+    if(musicTimer===null)musicTimer=setInterval(musicTick,155);
+  }
+  function stopMusic(){
+    if(musicTimer!==null){clearInterval(musicTimer);musicTimer=null;}
+  }
+  soundToggle.addEventListener('click',e=>{
+    e.preventDefault();e.stopPropagation();
+    soundOn=!soundOn;
+    soundToggle.textContent=soundOn?'🔊':'🔇';
+    soundToggle.setAttribute('aria-label',soundOn?'Mute sound':'Unmute sound');
+    if(soundOn){unlockAudio();sfx('start');startMusic();}
+    else stopMusic();
+  });
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden){stopMusic();if(audioCtx&&audioCtx.state==='running')audioCtx.suspend();}
+    else if(soundOn&&playing&&!pausedForBoard){unlockAudio();startMusic();}
+  });
+
+  function speed(){ return Math.min(3.5,1+(pass-1)*0.25); }
+  function stats(){
+    seedsEl.textContent=seeds; plantedEl.textContent=planted; fruitEl.textContent=collected;
+    wastedEl.textContent=wasted; frostLostEl.textContent=frostLost; passEl.textContent=pass;
+    speedEl.textContent=speed().toFixed(2)+'×';
+  }
+
+  function render(c){
+    c.el.className='plot '+c.state+(c.fruitVisible?' ready':'');
+    c.el.innerHTML=''; c.bar=null;
+    if(c.state==='dry') c.el.textContent='🏜️';
+    if(c.state==='wet'){
+      c.el.textContent='💧';
+      const b=document.createElement('span'); b.className='bar'; b.style.width='100%';
+      c.el.appendChild(b); c.bar=b;
+    }
+    if(c.state==='tree'){
+      c.el.textContent='🌳';
+      if(c.fruitVisible){
+        const a=document.createElement('span'); a.className='apple'; a.textContent='🍎';
+        c.el.appendChild(a);
+      }
+    }
+  }
+
+  function build(){
+    grid.innerHTML=''; cells=[];
+    for(let i=0;i<COLS*ROWS;i++){
+      const el=document.createElement('button'); el.type='button'; el.setAttribute('aria-label','Soil square');
+      const c={el,state:'dry',wetAt:0,plantAt:0,fruitAt:0,fruitVisible:false,fruitResolved:false,bar:null};
+      el.addEventListener('click',()=>squareClick(c));
+      grid.appendChild(el); cells.push(c); render(c);
+    }
+  }
+
+  function squareClick(c){
+    if(!playing||pausedForBoard) return;
+    if(c.state==='tree'){
+      if(c.fruitVisible){
+        c.fruitVisible=false; c.fruitResolved=true; collected++; seeds+=2;
+        render(c); stats(); sfx('apple'); message.textContent='🍎 Harvested! +2 seeds.';
+      } else message.textContent='🌳 No ripe apple yet.';
+      return;
+    }
+    if(seeds<=0){
+      message.textContent='⚠️ 0 seeds! Harvest an apple before the rain reaches the final square.';
+      return;
+    }
+    seeds--;
+    if(c.state==='wet'){
+      planted++; c.state='tree'; c.plantAt=performance.now(); c.fruitVisible=false; c.fruitResolved=false;
+      render(c); sfx('plant'); message.textContent='🌳 Tree planted! −1 seed.';
+    } else {
+      wasted++; sfx('waste'); message.textContent='🏜️ Dry ground! Seed wasted.';
+    }
+    stats();
+    if(seeds===0) message.textContent+=' You still have time to harvest an apple!';
+  }
+
+  function water(col,now){
+    let skippedHere=0;
+    for(let r=0;r<ROWS;r++){
+      const idx=r*COLS+col;
+      if(skipCells.has(idx)){ skippedHere++; continue; }
+      const c=cells[idx];
+      if(c.state==='dry'){ c.state='wet'; c.wetAt=now; c.fruitVisible=false; c.fruitResolved=false; render(c); }
+    }
+    if(skippedHere){
+      message.textContent='💨 Unpredictable rain! '+skippedHere+' block'+(skippedHere>1?'s':'')+' stayed dry.';
+    }else{
+      message.textContent=seeds===0?'⚠️ 0 seeds! Harvest an apple before the final square!':'💧 Wet soil — plant now!';
+    }
+  }
+
+  function endGame(){
+    stopMusic();sfx('gameover');
+    playing=false;
+    if(raf) cancelAnimationFrame(raf); raf=null;
+    finalEl.textContent='Apples: '+collected+' • Trees: '+planted+' • Passes survived: '+Math.max(0,pass-1);
+    gameover.classList.remove('hidden');
+    message.textContent='☠️ Game over.';
+  }
+
+  function planRainSkips(){
+    skipCells=new Set();
+    if(pass<3) return;
+
+    const addCell=(r,c)=>skipCells.add(r*COLS+c);
+    const shuffledCells=()=>{
+      const a=Array.from({length:ROWS*COLS},(_,i)=>i);
+      for(let i=a.length-1;i>0;i--){
+        const j=Math.floor(Math.random()*(i+1));
+        [a[i],a[j]]=[a[j],a[i]];
+      }
+      return a;
+    };
+
+    // Gradual difficulty:
+    // passes 3-4: 1 random block
+    // passes 5-6: 2-3 scattered blocks
+    // passes 7-8: scattered blocks OR part of one row
+    // passes 9-10: a full row plus scattered gaps
+    // pass 11+: full row(s) plus several scattered blocks
+    if(pass<=4){
+      skipCells.add(shuffledCells()[0]);
+    }else if(pass<=6){
+      const a=shuffledCells();
+      const count=2+Math.floor(Math.random()*2);
+      a.slice(0,count).forEach(i=>skipCells.add(i));
+    }else if(pass<=8){
+      if(Math.random()<0.5){
+        const a=shuffledCells();
+        a.slice(0,4).forEach(i=>skipCells.add(i));
+      }else{
+        const row=Math.floor(Math.random()*ROWS);
+        const cols=[0,1,2,3,4,5].sort(()=>Math.random()-0.5);
+        cols.slice(0,3+Math.floor(Math.random()*2)).forEach(c=>addCell(row,c));
+      }
+    }else if(pass<=10){
+      const row=Math.floor(Math.random()*ROWS);
+      for(let c=0;c<COLS;c++) addCell(row,c);
+      shuffledCells().filter(i=>!skipCells.has(i)).slice(0,2).forEach(i=>skipCells.add(i));
+    }else{
+      const rows=[0,1,2].sort(()=>Math.random()-0.5);
+      const rowCount=pass>=14 && Math.random()<0.45 ? 2 : 1;
+      rows.slice(0,rowCount).forEach(r=>{ for(let c=0;c<COLS;c++) addCell(r,c); });
+      const extra=Math.min(6,3+Math.floor((pass-11)/2));
+      shuffledCells().filter(i=>!skipCells.has(i)).slice(0,extra).forEach(i=>skipCells.add(i));
+    }
+
+    // Never skip the entire board; always leave at least 6 possible wet squares.
+    if(skipCells.size>ROWS*COLS-6){
+      const keep=shuffledCells().slice(0,6);
+      skipCells=new Set(Array.from({length:ROWS*COLS},(_,i)=>i).filter(i=>!keep.includes(i)));
+    }
+  }
+
+  function finishPass(){
+    if(!playing) return;
+    if(seeds===0){ endGame(); return; }
+    const lost=Math.min(FROST_LOSS,seeds);
+    seeds-=lost; frostLost+=lost;
+    flash.style.opacity='1'; setTimeout(()=>flash.style.opacity='0',300);
+    stats(); pass++; x=-85; lastCol=-1; planRainSkips();
+    if(seeds===0) message.textContent='❄️ Frost took your remaining seeds. Recover during this rain pass!';
+    else message.textContent='❄️ Frost −'+lost+' seeds. Pass '+pass+'!';
+  }
+
+  function update(now){
+    for(const c of cells){
+      if(c.state==='wet'){
+        const age=now-c.wetAt;
+        if(c.bar) c.bar.style.width=Math.max(0,100-age/WET_MS*100)+'%';
+        if(age>=WET_MS){ c.state='dry'; render(c); }
+      } else if(c.state==='tree'){
+        const age=now-c.plantAt;
+        if(!c.fruitVisible&&!c.fruitResolved&&age>=FRUIT_APPEAR){
+          c.fruitVisible=true; c.fruitAt=now; render(c);
+        }
+        if(c.fruitVisible&&now-c.fruitAt>=FRUIT_LIFE){
+          c.fruitVisible=false; c.fruitResolved=true; render(c);
+        }
+        if(age>=TREE_LIFE){
+          c.fruitVisible=false; c.fruitResolved=true; c.state='dry'; render(c);
+        }
+      }
+    }
+  }
+
+  function frame(now){
+    if(!playing||pausedForBoard) return;
+    if(!last) last=now;
+    const dt=Math.min(50,now-last); last=now;
+    const width=Math.max(1,field.clientWidth);
+    x+=55*speed()*dt/1000;
+    cloud.style.transform='translateX('+x+'px)';
+    rain.style.transform='translateX('+x+'px)';
+    const col=Math.floor((x+105)/(width/COLS));
+    if(col>=0&&col<COLS&&col!==lastCol){
+      lastCol=col;
+      water(col,now);
+    }
+    update(now);
+    if(x>width+80){ finishPass(); if(!playing)return; }
+    raf=requestAnimationFrame(frame);
+  }
+
+  function reset(){
+    stopMusic();
+    if(raf) cancelAnimationFrame(raf);
+    raf=null; playing=false; pausedForBoard=false;
+    seeds=5; planted=0; collected=0; wasted=0; frostLost=0; pass=1;
+    x=-85; lastCol=-1; last=0; skipCells=new Set();
+    build(); stats();
+    cloud.style.transform='translateX(-85px)'; rain.style.transform='translateX(-85px)';
+    if(playerName){ playerName.value=''; playerName.disabled=false; }
+    if(saveScore){ saveScore.disabled=false; saveScore.textContent='SUBMIT SCORE'; }
+    if(saveStatus) saveStatus.textContent='';
+  }
+
+  function begin(){
+    reset();
+    rules.classList.add('hidden'); gameover.classList.add('hidden');
+    playing=true; message.textContent='🌱 GO! Watch the rain.';
+    raf=requestAnimationFrame(frame);
+  }
+
+  function escapeHTML(value){
+    return String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  }
+
+  async function renderBoard(){
+    boardRows.innerHTML='<div class="boardrow"><span>Loading scores…</span><span>🌎</span></div>';
+    boardStatus.textContent='Loading global scores…';
+    try{
+      const url=SUPABASE_URL+'/rest/v1/'+SCORE_TABLE+'?select=player_name,apples,created_at&order=apples.desc,created_at.asc&limit=20';
+      const res=await fetch(url,{headers:{apikey:SUPABASE_KEY}});
+      if(!res.ok){
+        const detail=await res.text();
+        throw new Error(detail || ('Leaderboard request failed ('+res.status+')'));
+      }
+      const rows=await res.json();
+      if(!rows.length){
+        boardRows.innerHTML='<div class="boardrow"><span>No scores yet — be the first!</span><strong>🏆</strong></div>';
+      }else{
+        boardRows.innerHTML=rows.map((r,i)=>
+          '<div class="boardrow"><span><strong>#'+(i+1)+'</strong> '+escapeHTML(r.player_name)+'</span><strong>🍎 '+Number(r.apples||0)+'</strong></div>'
+        ).join('');
+      }
+      boardStatus.textContent='Top global scores • Ranked by apples collected';
+    }catch(err){
+      boardRows.innerHTML='<div class="boardrow"><span>Could not load scores.</span><span>⚠️</span></div>';
+      boardStatus.textContent='Check your connection and try again.';
+    }
+  }
+
+  async function submitScore(){
+    const name=playerName.value.trim().slice(0,20);
+    if(!name){ saveStatus.textContent='Enter a player name first.'; playerName.focus(); return; }
+    saveScore.disabled=true; saveStatus.textContent='Submitting score…';
+    try{
+      const res=await fetch(SUPABASE_URL+'/rest/v1/'+SCORE_TABLE,{
+        method:'POST',
+        headers:{
+          apikey:SUPABASE_KEY,
+          'Content-Type':'application/json',
+          Prefer:'return=minimal'
+        },
+        body:JSON.stringify({player_name:name,apples:collected})
+      });
+      if(!res.ok){
+        const detail=await res.text();
+        throw new Error(detail || ('Score submission failed ('+res.status+')'));
+      }
+      saveStatus.textContent='🏆 Score submitted to the Global Leaderboard!';
+      saveScore.textContent='SCORE SUBMITTED';
+      playerName.disabled=true;
+    }catch(err){
+      console.error('Supabase score error:',err);
+      saveStatus.textContent='Could not submit score: '+err.message;
+      saveScore.disabled=false;
+    }
+  }
+
+  function openBoard(){
+    const wasPlaying=playing;
+    if(wasPlaying){ pausedForBoard=true; if(raf)cancelAnimationFrame(raf); raf=null; }
+    leaderboard.dataset.wasPlaying=wasPlaying?'1':'0';
+    renderBoard(); leaderboard.classList.remove('hidden');
+  }
+
+  function shutBoard(){
+    leaderboard.classList.add('hidden');
+    if(leaderboard.dataset.wasPlaying==='1'&&playing){
+      pausedForBoard=false; last=0; raf=requestAnimationFrame(frame);
+    }
+  }
+
+  start.addEventListener('click',()=>{unlockAudio();begin();sfx('start');startMusic();});
+  again.addEventListener('click',()=>{ reset(); gameover.classList.add('hidden'); rules.classList.remove('hidden'); message.textContent='Read the rules and press START GAME.'; });
+  trophy.addEventListener('click',e=>{e.stopPropagation();stopMusic();openBoard();});
+  closeBoard.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();shutBoard();if(playing&&soundOn)startMusic();});
+  saveScore.addEventListener('click',submitScore);
+
+  reset();
+})();
+</script>
+</body>
+</html>
