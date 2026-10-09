@@ -1,0 +1,218 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><title>HEALTHIA Eco Sort</title>
+<style>
+:root{--g:#25df8b;--gold:#ffd653}*{box-sizing:border-box}
+.game,.panel,.zones,.zone,.collage,.item,.icon,.label,.inside,.mini{
+  -webkit-user-select:none!important;
+  user-select:none!important;
+  -webkit-touch-callout:none!important;
+}
+.item,.item *{
+  -webkit-user-drag:none!important;
+  user-drag:none!important;
+}
+body.dragging,body.dragging *{
+  -webkit-user-select:none!important;
+  user-select:none!important;
+  cursor:grabbing!important;
+}body{margin:0;background:radial-gradient(circle at top,#174d39,#061914 58%);color:#fff;font-family:Arial,sans-serif;min-height:100vh}header{text-align:center;padding:14px 8px 7px}h1{margin:0;color:var(--g);font-size:clamp(34px,7vw,55px);letter-spacing:2px}.sub{font-size:12px;color:#d7f8e7}.levels{display:flex;justify-content:center;gap:8px;margin:9px}.levels button,.btn{border:0;border-radius:12px;padding:10px 16px;min-height:44px;font-weight:900;background:#294f41;color:#fff}.levels .on,.btn.green{background:var(--g);color:#052016}.levels button:disabled{opacity:.4}.title{text-align:center;color:var(--gold);font-weight:900;font-size:20px;margin:8px}.game{max-width:1150px;margin:auto;padding:8px}.panel{background:#0b261ddd;border:1px solid #2c7257;border-radius:20px;padding:13px}.stats{display:flex;justify-content:space-between;gap:5px;flex-wrap:wrap}.pill{background:#051a13;border-radius:30px;padding:8px 11px;font-weight:bold}.instructions{text-align:center;margin:12px auto;max-width:800px;line-height:1.4}.zones{display:grid;grid-template-columns:repeat(var(--zc),1fr);gap:12px}.zone{min-height:195px;border:3px dashed #70a18e;border-radius:22px;padding:12px;text-align:center;transition:.16s;overflow:hidden}.zone.ocean{background:linear-gradient(#126d96,#073f5b)}.zone.land{background:linear-gradient(#477636,#233e1c)}.zone.recycle,.zone.yes{background:linear-gradient(#23805b,#103c2b)}.zone.waste{background:linear-gradient(#62544b,#302a27)}.zone.over{border-color:var(--gold);transform:scale(1.02)}.zone.wrong{animation:shake .28s;background:#6b2828}.scene{font-size:42px}.zone h2{font-size:23px;margin:3px}.droptext{font-size:12px;opacity:.85}.inside{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin-top:8px}.mini{background:#ffffff1d;border:1px solid #ffffff35;border-radius:8px;padding:3px 6px;font-size:19px}.bar{height:13px;background:#061712;border-radius:20px;overflow:hidden;margin:13px auto;max-width:720px}.fill{height:100%;width:0;background:var(--g);transition:.25s}.ct{text-align:center;color:var(--gold);font-size:20px;font-weight:900;margin:17px 0 4px}.cs{text-align:center;font-size:13px;color:#d3eee2;margin-bottom:9px}.collage{display:grid;grid-template-columns:repeat(8,1fr);gap:8px}.item{min-height:95px;background:#173c30;border:2px solid #397d63;border-radius:15px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:6px;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;transition:.15s}.item.selected{outline:4px solid var(--gold);transform:scale(1.04)}.item.matched{opacity:.18;pointer-events:none;transform:scale(.9)}.icon{font-size:38px}.label{font-size:12px;font-weight:900;margin-top:4px}.ghost{position:fixed;z-index:99;pointer-events:none;width:58px;height:58px;transform:translate3d(-50%,-50%,0);display:flex;align-items:center;justify-content:center;font-size:38px;background:#173c30;border:2px solid #ffd653;border-radius:14px;box-shadow:0 6px 14px #0007;will-change:left,top}#msg{text-align:center;min-height:27px;margin:11px;font-weight:bold}.buttons{text-align:center}.btn.gold{background:var(--gold);color:#181300}.overlay{display:none;position:fixed;inset:0;background:#02110def;z-index:200;align-items:center;justify-content:center;text-align:center;padding:20px}.pop{max-width:520px;background:#12392a;border:2px solid var(--g);border-radius:24px;padding:28px}.pop h2{color:var(--gold);font-size:36px;margin:0 0 8px}@keyframes shake{25%{transform:translateX(-8px)}50%{transform:translateX(8px)}75%{transform:translateX(-5px)}}
+@media(max-width:800px){.collage{grid-template-columns:repeat(4,1fr)}.zone{min-height:165px}}@media(max-width:560px){.game{padding:5px}.panel{padding:8px}.zones{grid-template-columns:1fr!important;gap:7px}.zone{min-height:105px;display:grid;grid-template-columns:55px 1fr;text-align:left;align-items:center;padding:7px}.scene{grid-row:1/4;text-align:center;font-size:35px}.zone h2{font-size:18px}.inside{grid-column:2;justify-content:flex-start;margin:2px}.collage{grid-template-columns:repeat(3,1fr);gap:6px}.item{min-height:87px;padding:4px}.icon{font-size:34px}.label{font-size:11px}.pill{font-size:12px;padding:7px}.ct{font-size:18px}}
+</style></head><body><header><h1>HEALTHIA</h1><div class="sub">ECO SORT CHALLENGE • AGES 7–13</div><div class="title" id="title"></div><div class="levels"><button id="b0">Level 1</button><button id="b1" disabled>🔒 Level 2</button><button id="b2" disabled>🔒 Level 3</button></div></header>
+<main class="game"><section class="panel"><div class="stats"><span class="pill">⭐ Score: <b id="score"></b></span><span class="pill">✅ Sorted: <b id="count"></b></span><span class="pill">⏱ <b id="time">00:00</b></span></div><div class="instructions" id="instructions"></div><div class="zones" id="zones"></div><div class="bar"><div class="fill" id="fill"></div></div><div class="ct" id="ct"></div><div class="cs" id="cs"></div><div class="collage" id="collage"></div><div id="msg"></div><div class="buttons"><button class="btn gold" id="reset">Shuffle & Restart</button></div></section></main>
+<div class="overlay" id="win"><div class="pop"><h2 id="winTitle"></h2><div id="winText"></div><br><button class="btn green" id="next"></button></div></div>
+<script>
+(function(){
+const L=[
+{title:"LEVEL 1 — WHERE DOES IT BELONG?",score:1500,instruction:"Sort every picture into OCEAN, LAND, or RECYCLE.",ct:"MIXED PICTURE COLLAGE",cs:"30 pictures are mixed together. Sort every one!",zones:[["ocean","🌊","OCEAN","Animals that live in the ocean","ocean"],["land","🌳","LAND","Animals that live mainly on land","land"],["recycle","♻️","RECYCLE","Items that can be recycled","recycle"]],items:[
+["🐬","Dolphin","ocean"],["🐋","Whale","ocean"],["🐙","Octopus","ocean"],["🦀","Crab","ocean"],["🐠","Tropical Fish","ocean"],["🦈","Shark","ocean"],["🦑","Squid","ocean"],["🪼","Jellyfish","ocean"],["🐚","Seashell","ocean"],["🦭","Seal","ocean"],
+["🦌","Deer","land"],["🐻","Bear","land"],["🦊","Fox","land"],["🐇","Rabbit","land"],["🦉","Owl","land"],["🐿️","Squirrel","land"],["🦋","Butterfly","land"],["🐝","Bee","land"],["🦔","Hedgehog","land"],["🐘","Elephant","land"],
+["📰","Newspaper","recycle"],["📦","Cardboard","recycle"],["🥫","Metal Can","recycle"],["🫙","Glass Jar","recycle"],["🍾","Glass Bottle","recycle"],["🧴","Plastic Bottle","recycle"],["🥤","Plastic Cup","recycle"],["📄","Office Paper","recycle"],["🥛","Milk Jug","recycle"],["🧃","Drink Carton","recycle"]]},
+{title:"LEVEL 2 — RECYCLE OR WASTE?",score:1800,instruction:"Look carefully at the mixed collage. Decide whether each item CAN BE RECYCLED or belongs in WASTE / CANNOT BE RECYCLED.",ct:"RECYCLE OR WASTE COLLAGE",cs:"Some are recyclable. Some are not. Sort all 30!",zones:[["yes","♻️","CAN BE RECYCLED","Clean, accepted recyclable materials","yes"],["waste","🗑️","WASTE / CANNOT BE RECYCLED","Common trash and contaminated items","waste"]],items:[
+["📰","Newspaper","yes"],["📦","Cardboard Box","yes"],["🥫","Aluminum Can","yes"],["🫙","Glass Jar","yes"],["🍾","Glass Bottle","yes"],["🧴","Plastic Bottle","yes"],["📄","Clean Paper","yes"],["🥛","Plastic Milk Jug","yes"],["📬","Paper Mail","yes"],["📖","Magazine","yes"],["🥤","Clean Plastic Cup","yes"],["🧃","Drink Carton","yes"],["🥫","Steel Food Can","yes"],["📦","Cereal Box","yes"],["🧴","Shampoo Bottle","yes"],
+["🍌","Banana Peel","waste"],["🍎","Apple Core","waste"],["🧻","Used Tissue","waste"],["🍬","Candy Wrapper","waste"],["🍟","Greasy Food Box","waste"],["🧽","Used Sponge","waste"],["🪥","Toothbrush","waste"],["🧸","Broken Toy","waste"],["👟","Old Shoe","waste"],["🍽️","Ceramic Plate","waste"],["🧤","Rubber Glove","waste"],["🧷","Diaper","waste"],["🥡","Food-Soiled Container","waste"],["🪞","Mirror","waste"],["💡","Light Bulb","waste"]]},
+{title:"LEVEL 3 — COMPOST OR NOT?",score:2000,instruction:"Look carefully at the mixed collage. Decide whether each item CAN BE COMPOSTED or CANNOT BE COMPOSTED.",ct:"COMPOST OR NOT COLLAGE",cs:"Food scraps, yard materials, and tricky items are mixed together. Sort all 30!",zones:[["compost","🌱","CAN BE COMPOSTED","Natural food and yard materials that can break down","yes"],["notcompost","🚫","CANNOT BE COMPOSTED","Items that do not belong in a basic home compost pile","waste"]],items:[
+["🍌","Banana Peel","compost"],["🍎","Apple Core","compost"],["🥚","Eggshells","compost"],["☕","Coffee Grounds","compost"],["🍂","Dry Leaves","compost"],["🌿","Plant Clippings","compost"],["🥬","Lettuce Scraps","compost"],["🥕","Carrot Peels","compost"],["🍉","Melon Rind","compost"],["🍓","Strawberry Tops","compost"],["🌽","Corn Husks","compost"],["🥔","Potato Peels","compost"],["🍞","Plain Bread","compost"],["🫖","Tea Leaves","compost"],["🌱","Grass Clippings","compost"],
+["🧴","Plastic Bottle","notcompost"],["🥫","Metal Can","notcompost"],["🫙","Glass Jar","notcompost"],["🍬","Candy Wrapper","notcompost"],["🧽","Sponge","notcompost"],["🪥","Toothbrush","notcompost"],["🧸","Plastic Toy","notcompost"],["👟","Shoe","notcompost"],["🧤","Rubber Glove","notcompost"],["💡","Light Bulb","notcompost"],["🔋","Battery","notcompost"],["🍴","Plastic Fork","notcompost"],["🧃","Plastic Pouch","notcompost"],["🪙","Metal Object","notcompost"],["🧼","Soap Bar","notcompost"]]}
+];
+let level=0,unlocked=0,score=0,done=0,secs=0,timer,selected=null,ghost=null,drag=null;
+const $=x=>document.getElementById(x),shuffle=a=>a.map(v=>[Math.random(),v]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);
+function load(n){if(n>unlocked)return;level=n;score=L[n].score;done=0;secs=0;selected=null;$("title").textContent=L[n].title;$("instructions").textContent=L[n].instruction;$("ct").textContent=L[n].ct;$("cs").textContent=L[n].cs;$("score").textContent=score;$("count").textContent=`0 / ${L[n].items.length}`;$("time").textContent="00:00";$("fill").style.width="0";$("msg").textContent="Choose any picture to begin.";renderZones();renderItems();buttons();clearInterval(timer);timer=setInterval(()=>{secs++;$("time").textContent=String(Math.floor(secs/60)).padStart(2,"0")+":"+String(secs%60).padStart(2,"0")},1000)}
+function buttons(){
+ for(let i=0;i<3;i++){
+  let b=$("b"+i);
+  b.disabled=i>unlocked;
+  b.textContent=(i>unlocked?"🔒 ":"")+"Level "+(i+1);
+  b.className=i===level?"on":"";
+ }
+}
+function renderZones(){let z=$("zones");z.innerHTML="";z.style.setProperty("--zc",L[level].zones.length);L[level].zones.forEach(x=>{let d=document.createElement("div");d.className="zone "+x[4];d.dataset.zone=x[0];d.innerHTML=`<div class="scene">${x[1]}</div><h2>${x[2]}</h2><div class="droptext">${x[3]}</div><div class="inside"></div>`;d.onclick=()=>selected&&match(selected,d);z.appendChild(d)})}
+function renderItems(){let c=$("collage");c.innerHTML="";shuffle(L[level].items).forEach(x=>{let d=document.createElement("div");d.className="item";d.dataset.zone=x[2];d.dataset.icon=x[0];d.dataset.label=x[1];d.innerHTML=`<div class="icon">${x[0]}</div><div class="label">${x[1]}</div>`;d.onclick=()=>{if(d.dataset.justDragged==="1"){d.dataset.justDragged="0";return}pick(d)};d.onpointerdown=e=>start(e,d);c.appendChild(d)})}
+function pick(d){if(d.classList.contains("matched"))return;document.querySelectorAll(".item").forEach(x=>x.classList.remove("selected"));selected=d;d.classList.add("selected");$("msg").textContent=`Where does ${d.dataset.label} belong?`}
+function match(item,z){if(item.dataset.zone===z.dataset.zone){item.classList.add("matched");item.classList.remove("selected");selected=null;done++;score+=50;$("score").textContent=score;$("count").textContent=`${done} / ${L[level].items.length}`;$("fill").style.width=done/L[level].items.length*100+"%";let m=document.createElement("span");m.className="mini";m.textContent=item.dataset.icon;m.title=item.dataset.label;z.querySelector(".inside").appendChild(m);$("collage").appendChild(item);$("msg").textContent=`Correct! ${item.dataset.label} is sorted.`;if(done===L[level].items.length)setTimeout(win,400)}else{score=Math.max(0,score-25);$("score").textContent=score;z.classList.add("wrong");$("msg").textContent=`Not quite. Try ${item.dataset.label} in the other section.`;setTimeout(()=>z.classList.remove("wrong"),350)}}
+let dragPointer=null,dragMoved=false,startX=0,startY=0,zoneRects=[],raf=0,lastEvt=null;
+function cleanupDrag(){
+ document.querySelectorAll(".zone").forEach(z=>z.classList.remove("over"));
+ if(ghost){ghost.remove();ghost=null}
+ document.querySelectorAll(".ghost").forEach(g=>g.remove());
+ document.body.classList.remove("dragging");
+ if(window.getSelection)window.getSelection().removeAllRanges();
+ drag=null;dragPointer=null;dragMoved=false;zoneRects=[];lastEvt=null;if(raf){cancelAnimationFrame(raf);raf=0};
+ document.removeEventListener("pointermove",moving,true);
+ document.removeEventListener("pointerup",end,true);
+ document.removeEventListener("pointercancel",cancelDrag,true);
+}
+function start(e,d){
+ if(d.classList.contains("matched"))return;
+ e.preventDefault();
+ e.stopPropagation();
+ cleanupDrag();
+ drag=d;selected=d;dragPointer=e.pointerId;startX=e.clientX;startY=e.clientY;dragMoved=false;
+ zoneRects=[...document.querySelectorAll(".zone")].map(z=>({z,r:z.getBoundingClientRect()}));
+ try{d.setPointerCapture(e.pointerId)}catch(err){}
+ document.body.classList.add("dragging");
+ if(window.getSelection)window.getSelection().removeAllRanges();
+ document.addEventListener("pointermove",moving,true);
+ document.addEventListener("pointerup",end,true);
+ document.addEventListener("pointercancel",cancelDrag,true);
+}
+function createGhost(){
+ if(!drag||ghost)return;
+ ghost=document.createElement("div");
+ ghost.className="ghost";
+ ghost.textContent=drag.dataset.icon;
+ document.body.appendChild(ghost);
+}
+function move(e){if(ghost){ghost.style.left=e.clientX+"px";ghost.style.top=e.clientY+"px"}}
+function moving(e){
+ if(!drag||e.pointerId!==dragPointer)return;
+ lastEvt={clientX:e.clientX,clientY:e.clientY};
+ if(!dragMoved && Math.hypot(e.clientX-startX,e.clientY-startY)>7){dragMoved=true;createGhost()}
+ if(!dragMoved)return;
+ e.preventDefault();
+ if(raf)return;
+ raf=requestAnimationFrame(()=>{
+  raf=0;if(!lastEvt)return;
+  move(lastEvt);
+  for(const q of zoneRects){let r=q.r;q.z.classList.toggle("over",lastEvt.clientX>=r.left&&lastEvt.clientX<=r.right&&lastEvt.clientY>=r.top&&lastEvt.clientY<=r.bottom)}
+ });
+}
+function end(e){
+ if(!drag||e.pointerId!==dragPointer){cleanupDrag();return}
+ let item=drag,wasDrag=dragMoved,hit=null;
+ if(raf){cancelAnimationFrame(raf);raf=0}
+ if(wasDrag)item.dataset.justDragged="1";
+ if(wasDrag){
+  for(const q of zoneRects){let r=q.r;if(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom)hit=q.z}
+ }
+ cleanupDrag();
+ if(wasDrag&&hit){match(item,hit)}
+}
+function cancelDrag(){cleanupDrag()}
+window.addEventListener("blur",cleanupDrag);
+document.addEventListener("visibilitychange",()=>{if(document.hidden)cleanupDrag()});
+function restartWholeGame(){
+ clearInterval(timer);
+ cleanupDrag();
+ unlocked=0;
+ level=0;
+ score=0;
+ done=0;
+ secs=0;
+ selected=null;
+ $("win").style.display="none";
+ document.querySelectorAll(".item").forEach(x=>x.classList.remove("selected","matched"));
+ buttons();
+ load(0);
+ window.scrollTo({top:0,behavior:"smooth"});
+}
+function win(){
+ clearInterval(timer);
+ if(level===0){
+  unlocked=Math.max(unlocked,1);buttons();
+  $("winTitle").textContent="LEVEL 1 COMPLETE!";
+  $("winText").innerHTML=`Great sorting!<br><br>⭐ Score: <b>${score}</b><br>⏱ Time: <b>${$("time").textContent}</b><br><br><b>Level 2: Recycle or Waste?</b> is unlocked.`;
+  $("next").textContent="Start Level 2";
+  $("next").onclick=()=>{$("win").style.display="none";load(1)}
+ }else if(level===1){
+  unlocked=Math.max(unlocked,2);buttons();
+  $("winTitle").textContent="LEVEL 2 COMPLETE!";
+  $("winText").innerHTML=`Great recycling work!<br><br>⭐ Score: <b>${score}</b><br>⏱ Time: <b>${$("time").textContent}</b><br><br><b>Level 3: Compost or Not?</b> is unlocked.`;
+  $("next").textContent="Start Level 3";
+  $("next").onclick=()=>{$("win").style.display="none";load(2)}
+ }else{
+  $("winTitle").textContent="HEALTHIA ECO EXPERT!";
+  $("winText").innerHTML=`You completed all three Eco Sort challenges!<br><br>🌊 Level 1 — Ocean, Land & Recycle<br>♻️ Level 2 — Recycle or Waste<br>🌱 Level 3 — Compost or Not<br><br>⭐ Level 3 Score: <b>${score}</b><br>⏱ Level 3 Time: <b>${$("time").textContent}</b>`;
+  $("next").textContent="Play Again";
+  $("next").onclick=()=>restartWholeGame()
+ }
+ $("win").style.display="flex"
+}
+document.addEventListener("selectstart",e=>{if(e.target.closest&&e.target.closest(".game"))e.preventDefault()});
+document.addEventListener("dragstart",e=>{if(e.target.closest&&e.target.closest(".game"))e.preventDefault()});
+$("reset").onclick=()=>load(level);$("b0").onclick=()=>load(0);$("b1").onclick=()=>load(1);$("b2").onclick=()=>load(2);load(0);
+})();
+</script>
+<!-- Gentle original ambient background soundtrack; synthesized locally, no external assets -->
+<style>
+#ecoAudioToggle{position:fixed;right:12px;bottom:12px;z-index:190;border:1px solid #65b797;border-radius:999px;background:#103b2f;color:white;padding:11px 15px;font:700 13px Arial,sans-serif;box-shadow:0 4px 14px #0006;touch-action:manipulation}
+</style>
+<button id="ecoAudioToggle" type="button" aria-label="Turn background music on or off">♫ Music: On</button>
+<script>
+(function(){
+"use strict";
+let ctx=null, master=null, playing=false, nextTime=0, scheduler=null, step=0;
+const notes=[261.63,329.63,392,493.88,440,392,329.63,293.66,
+             261.63,329.63,392,523.25,493.88,392,329.63,293.66];
+function note(freq,when,duration,volume,kind="sine"){
+  if(!ctx||!master)return;
+  const osc=ctx.createOscillator(), gain=ctx.createGain();
+  osc.type=kind;osc.frequency.setValueAtTime(freq,when);
+  gain.gain.setValueAtTime(.0001,when);
+  gain.gain.exponentialRampToValueAtTime(volume,when+.035);
+  gain.gain.exponentialRampToValueAtTime(.0001,when+duration);
+  osc.connect(gain);gain.connect(master);osc.start(when);osc.stop(when+duration+.02);
+}
+function schedule(){
+ if(!playing||!ctx)return;
+ while(nextTime<ctx.currentTime+.45){
+   const i=step%16;
+   note(notes[i],nextTime,.46,.075);
+   if(i%4===0)note(notes[i]/2,nextTime,1.3,.043,"triangle");
+   if(i%8===0)note(notes[(i+4)%16]/2,nextTime,1.6,.025);
+   nextTime+=.37;step++;
+ }
+}
+const btn=document.getElementById("ecoAudioToggle");
+async function toggle(){
+ try{
+  if(!ctx){
+    ctx=new (window.AudioContext||window.webkitAudioContext)();
+    master=ctx.createGain();master.gain.value=.50;master.connect(ctx.destination);
+  }
+  if(playing){
+    playing=false;clearInterval(scheduler);scheduler=null;
+    await ctx.suspend();btn.textContent="♫ Music: Off";btn.setAttribute("aria-pressed","false");
+  }else{
+    await ctx.resume();playing=true;nextTime=ctx.currentTime+.08;
+    schedule();scheduler=setInterval(schedule,120);
+    btn.textContent="♫ Music: On";btn.setAttribute("aria-pressed","true");
+  }
+ }catch(e){btn.textContent="♫ Music unavailable";console.warn("Audio unavailable",e)}
+}
+btn.addEventListener("click",toggle);
+// Browsers require a user gesture before sound can play. Start automatically
+// on the first interaction with the game, without needing the music button.
+function startOnFirstGesture(event){
+ if(event.target===btn || btn.contains(event.target))return;
+ if(!playing)toggle();
+ window.removeEventListener("pointerdown",startOnFirstGesture,true);
+ window.removeEventListener("keydown",startOnFirstGesture,true);
+}
+window.addEventListener("pointerdown",startOnFirstGesture,true);
+window.addEventListener("keydown",startOnFirstGesture,true);
+document.addEventListener("visibilitychange",()=>{
+ if(!ctx||!playing)return;
+ if(document.hidden){ctx.suspend()}else{ctx.resume().then(()=>{nextTime=ctx.currentTime+.08})}
+});
+})();
+</script>
+</body></html>
