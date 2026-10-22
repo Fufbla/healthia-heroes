@@ -1,1 +1,0 @@
-Upload hero-showdown.html and the videos folder together to the same GitHub folder. Keep the videos folder beside hero-showdown.html. Every individual file is below 25 MB.
