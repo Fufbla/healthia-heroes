@@ -1,3 +1,0 @@
-Upload hero-showdown.html and the videos folder together to the same GitHub folder as your current game, replacing those files. Keep the videos folder next to hero-showdown.html. Your existing game URL stays the same.
-
-The new opening is videos/heroshowdowncutscene.mp4. The previous generated opening and its soundtrack have been removed. The three special-move videos remain included.
